@@ -13,8 +13,8 @@ export class EmailService {
   private constructor() {
     this.config = {
       sendgridApiKey: process.env.REACT_APP_SENDGRID_API_KEY,
-      fromEmail: process.env.REACT_APP_FROM_EMAIL || 'noreply@oculynx.com',
-      fromName: process.env.REACT_APP_FROM_NAME || 'Oculynx Fleet Management'
+      fromEmail: process.env.REACT_APP_FROM_EMAIL || 'noreply@fleetfix.com',
+      fromName: process.env.REACT_APP_FROM_NAME || 'FleetFix Fleet Management'
     };
   }
 
@@ -109,7 +109,7 @@ export class EmailService {
 
     const emailData: EmailData = {
       to,
-      subject: 'Welcome to Oculynx Fleet Management',
+      subject: 'Welcome to FleetFix Fleet Management',
       html: this.generateWelcomeHtml(userName),
       text: this.generateWelcomeText(userName)
     };
@@ -182,7 +182,7 @@ export class EmailService {
           <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</p>
         </div>
         <p>Please schedule this maintenance as soon as possible to ensure optimal vehicle performance and safety.</p>
-        <p>Best regards,<br>Your Oculynx Fleet Management System</p>
+        <p>Best regards,<br>Your FleetFix Fleet Management System</p>
       </div>
     `;
   }
@@ -207,7 +207,7 @@ Due Date: ${dueDate.toLocaleDateString()}
 Please schedule this maintenance as soon as possible to ensure optimal vehicle performance and safety.
 
 Best regards,
-Your Oculynx Fleet Management System
+Your FleetFix Fleet Management System
     `.trim();
   }
 
@@ -233,7 +233,7 @@ Your Oculynx Fleet Management System
           ${cost ? `<p><strong>Cost:</strong> $${cost.toFixed(2)}</p>` : ''}
         </div>
         <p>Your vehicle is now ready for service.</p>
-        <p>Best regards,<br>Your Oculynx Fleet Management System</p>
+        <p>Best regards,<br>Your FleetFix Fleet Management System</p>
       </div>
     `;
   }
@@ -262,7 +262,7 @@ ${cost ? `Cost: $${cost.toFixed(2)}` : ''}
 Your vehicle is now ready for service.
 
 Best regards,
-Your Oculynx Fleet Management System
+Your FleetFix Fleet Management System
     `.trim();
   }
 
@@ -285,7 +285,7 @@ Your Oculynx Fleet Management System
           ${location ? `<p><strong>Location:</strong> ${location}</p>` : ''}
         </div>
         <p>Please consider reordering this part to maintain adequate inventory levels.</p>
-        <p>Best regards,<br>Your Oculynx Fleet Management System</p>
+        <p>Best regards,<br>Your FleetFix Fleet Management System</p>
       </div>
     `;
   }
@@ -311,16 +311,16 @@ ${location ? `Location: ${location}` : ''}
 Please consider reordering this part to maintain adequate inventory levels.
 
 Best regards,
-Your Oculynx Fleet Management System
+Your FleetFix Fleet Management System
     `.trim();
   }
 
   private generateWelcomeHtml(userName: string): string {
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #007bff;">Welcome to Oculynx Fleet Management</h2>
+        <h2 style="color: #007bff;">Welcome to FleetFix Fleet Management</h2>
         <p>Dear ${userName},</p>
-        <p>Welcome to Oculynx Fleet Management! Your account has been successfully created.</p>
+        <p>Welcome to FleetFix Fleet Management! Your account has been successfully created.</p>
         <div style="background: #e7f3ff; padding: 15px; margin: 20px 0; border-radius: 5px;">
           <h3 style="margin-top: 0;">Getting Started</h3>
           <ul>
@@ -331,18 +331,18 @@ Your Oculynx Fleet Management System
           </ul>
         </div>
         <p>If you have any questions, please don't hesitate to contact our support team.</p>
-        <p>Best regards,<br>The Oculynx Team</p>
+        <p>Best regards,<br>The FleetFix Team</p>
       </div>
     `;
   }
 
   private generateWelcomeText(userName: string): string {
     return `
-Welcome to Oculynx Fleet Management
+Welcome to FleetFix Fleet Management
 
 Dear ${userName},
 
-Welcome to Oculynx Fleet Management! Your account has been successfully created.
+Welcome to FleetFix Fleet Management! Your account has been successfully created.
 
 Getting Started:
 - Add your vehicles to the fleet
@@ -353,7 +353,7 @@ Getting Started:
 If you have any questions, please don't hesitate to contact our support team.
 
 Best regards,
-The Oculynx Team
+The FleetFix Team
     `.trim();
   }
 }

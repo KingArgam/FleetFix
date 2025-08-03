@@ -365,33 +365,6 @@ export interface AppError {
   timestamp: Date;
 }
 
-// Component and Position types for simulation/breadboard
-export interface Position {
-  x: number;
-  y: number;
-}
-
-export type ComponentType = 'arduino' | 'esp32' | 'esp8266' | 'led' | 'resistor' | 'button' | 'potentiometer' | 'servo' | 'arduino-uno' | 'ultrasonic-sensor';
-
-export interface Component {
-  id: string;
-  type: ComponentType;
-  name?: string;
-  position: Position;
-  pins: Pin[];
-  properties?: Record<string, any>;
-  rotation?: number;
-  svgData?: string;
-}
-
-export interface Pin {
-  id: string;
-  componentId: string;
-  position: Position;
-  type: 'input' | 'output' | 'power' | 'ground';
-  connected?: boolean;
-}
-
 // Search & Filter Types
 export interface SearchFilters {
   query?: string;
@@ -411,27 +384,4 @@ export interface SearchFilters {
 export interface SortOptions {
   field: string;
   direction: 'asc' | 'desc';
-}
-
-// Simulation and Editor Types for Breadboard Canvas
-export interface SimulationState {
-  components: Component[];
-  connections: Connection[];
-  wires: any[];
-  isRunning: boolean;
-  time: number;
-}
-
-export interface Connection {
-  id: string;
-  fromComponent: string;
-  fromPin: string;
-  toComponent: string;
-  toPin: string;
-}
-
-export interface EditorState {
-  mode: 'select' | 'place' | 'wire' | 'pan';
-  selectedComponentType?: ComponentType;
-  selectedComponents: string[];
 }
