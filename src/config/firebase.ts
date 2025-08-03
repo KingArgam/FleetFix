@@ -1,0 +1,43 @@
+// Firebase configuration and initialization
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
+import { getAnalytics } from 'firebase/analytics';
+
+// Your Firebase configuration from the console
+const firebaseConfig = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyBkPXq0h5cBzQC0zm2BLJa0Kg59LOT7xkY",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "fleetfix-4cd0d.firebaseapp.com",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "fleetfix-4cd0d",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "fleetfix-4cd0d.firebasestorage.app",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "202066480009",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:202066480009:web:5383e43af25d465f5e2f58",
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-D2Z5YRMGTE"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialize Firebase services
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
+
+// Initialize Analytics (optional)
+let analytics;
+if (typeof window !== 'undefined') {
+  analytics = getAnalytics(app);
+}
+export { analytics };
+
+// Check if Firebase is properly configured
+export const isFirebaseConfigured = () => {
+  return firebaseConfig.apiKey && 
+         firebaseConfig.projectId &&
+         firebaseConfig.apiKey.startsWith('AIza');
+};
+
+export const isFirebaseEnabled = process.env.REACT_APP_USE_FIREBASE === 'true';
+
+export default app;

@@ -1,0 +1,478 @@
+import React, { useState, useEffect } from 'react';
+import { Users, UserPlus, Mail, Shield, Search, Edit2, Trash2, AlertCircle } from 'lucide-react';
+import { useAppContext } from '../../contexts/AppContext';
+import userDataService, { UserProfile, CompanyData } from '../../services/UserDataService';
+
+interface AdminPanelProps {}
+
+const AdminPanel: React.FC<AdminPanelProps> = () => {
+  const { state } = useAppContext();
+  const { currentUser } = state;
+  
+  const [activeTab, setActiveTab] = useState<'users' | 'companies' | 'invites'>('users');
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [companies, setCompanies] = useState<CompanyData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  
+  // Invite form state
+  const [inviteData, setInviteData] = useState({
+    email: '',
+    role: 'viewer' as 'viewer' | 'editor' | 'admin',
+    companyId: ''
+  });
+
+  // User edit form state
+  const [editUserData, setEditUserData] = useState<Partial<UserProfile>>({});
+
+  useEffect(() => {
+    loadUsers();
+    loadCompanies();
+  }, []);
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      // In a real implementation, you'd have an admin endpoint to get all users
+      // For now, we'll simulate it
+      const mockUsers: UserProfile[] = [
+        {
+          id: '1',
+          uid: 'user1',
+          email: 'john@example.com',
+          displayName: 'John Doe',
+          role: 'admin',
+          isEmailVerified: true,
+          lastLogin: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: '2',
+          uid: 'user2',
+          email: 'jane@example.com',
+          displayName: 'Jane Smith',
+          role: 'editor',
+          isEmailVerified: true,
+          lastLogin: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+      setUsers(mockUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCompanies = async () => {
+    try {
+      // Mock companies data
+      const mockCompanies: CompanyData[] = [
+        {
+          id: 'company1',
+          name: 'FleetFix Inc.',
+          email: 'admin@fleetfix.com',
+          ownerId: 'user1',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+      setCompanies(mockCompanies);
+    } catch (error) {
+      console.error('Error loading companies:', error);
+    }
+  };
+
+  const handleEditUser = (user: UserProfile) => {
+    setSelectedUser(user);
+    setEditUserData({
+      displayName: user.displayName,
+      role: user.role,
+      companyId: user.companyId
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+    
+    setLoading(true);
+    try {
+      await userDataService.updateUserProfile(selectedUser.uid, editUserData);
+      await loadUsers();
+      setShowEditModal(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error updating user:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendInvite = async () => {
+    setLoading(true);
+    try {
+      // In a real implementation, you'd send an email invite
+      console.log('Sending invite to:', inviteData);
+      
+      // Reset form
+      setInviteData({ email: '', role: 'viewer', companyId: '' });
+      setShowInviteModal(false);
+      
+      // Show success message
+      alert('Invitation sent successfully!');
+    } catch (error) {
+      console.error('Error sending invite:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredUsers = users.filter(user =>
+    user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Check if current user is admin
+  if (currentUser?.role !== 'admin') {
+    return (
+      <div className="admin-panel unauthorized">
+        <div className="unauthorized-message">
+          <AlertCircle size={48} />
+          <h2>Access Denied</h2>
+          <p>You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-panel">
+      <div className="page-header">
+        <h1>Admin Panel</h1>
+        <p>Manage users, roles, and company settings</p>
+      </div>
+
+      <div className="admin-tabs">
+        <button 
+          className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          <Users size={20} />
+          Users
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'companies' ? 'active' : ''}`}
+          onClick={() => setActiveTab('companies')}
+        >
+          <Shield size={20} />
+          Companies
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'invites' ? 'active' : ''}`}
+          onClick={() => setActiveTab('invites')}
+        >
+          <Mail size={20} />
+          Invitations
+        </button>
+      </div>
+
+      <div className="tab-content">
+        {activeTab === 'users' && (
+          <div className="users-tab">
+            <div className="users-header">
+              <div className="search-box">
+                <Search className="search-icon" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <button 
+                className="btn btn-primary"
+                onClick={() => setShowInviteModal(true)}
+              >
+                <UserPlus size={20} />
+                Invite User
+              </button>
+            </div>
+
+            <div className="users-list">
+              <table className="users-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map(user => (
+                    <tr key={user.id}>
+                      <td>
+                        <div className="user-info">
+                          <div className="user-avatar">
+                            {user.avatarUrl ? (
+                              <img src={user.avatarUrl} alt={user.displayName} />
+                            ) : (
+                              <div className="avatar-placeholder">
+                                {user.displayName.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <span className="user-name">{user.displayName}</span>
+                        </div>
+                      </td>
+                      <td>{user.email}</td>
+                      <td>
+                        <span className={`role-badge role-${user.role}`}>
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${user.isEmailVerified ? 'verified' : 'unverified'}`}>
+                          {user.isEmailVerified ? 'Verified' : 'Unverified'}
+                        </span>
+                      </td>
+                      <td>
+                        {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                          <button
+                            className="btn btn-sm btn-secondary"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'companies' && (
+          <div className="companies-tab">
+            <div className="companies-list">
+              {companies.map(company => (
+                <div key={company.id} className="company-card">
+                  <div className="company-info">
+                    <h3>{company.name}</h3>
+                    <p>{company.email}</p>
+                  </div>
+                  <div className="company-actions">
+                    <button className="btn btn-sm btn-secondary">
+                      <Edit2 size={16} />
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'invites' && (
+          <div className="invites-tab">
+            <div className="invite-form">
+              <h3>Send Invitation</h3>
+              <div className="form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  value={inviteData.email}
+                  onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div className="form-group">
+                <label>Role</label>
+                <select
+                  value={inviteData.role}
+                  onChange={(e) => setInviteData(prev => ({ ...prev, role: e.target.value as any }))}
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Company</label>
+                <select
+                  value={inviteData.companyId}
+                  onChange={(e) => setInviteData(prev => ({ ...prev, companyId: e.target.value }))}
+                >
+                  <option value="">Select Company</option>
+                  {companies.map(company => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button 
+                className="btn btn-primary"
+                onClick={handleSendInvite}
+                disabled={!inviteData.email || loading}
+              >
+                {loading ? 'Sending...' : 'Send Invitation'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Edit User Modal */}
+      {showEditModal && selectedUser && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Edit User: {selectedUser.displayName}</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowEditModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Display Name</label>
+                <input
+                  type="text"
+                  value={editUserData.displayName || ''}
+                  onChange={(e) => setEditUserData(prev => ({ ...prev, displayName: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label>Role</label>
+                <select
+                  value={editUserData.role || 'viewer'}
+                  onChange={(e) => setEditUserData(prev => ({ ...prev, role: e.target.value as any }))}
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Company</label>
+                <select
+                  value={editUserData.companyId || ''}
+                  onChange={(e) => setEditUserData(prev => ({ ...prev, companyId: e.target.value }))}
+                >
+                  <option value="">No Company</option>
+                  {companies.map(company => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowEditModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={handleUpdateUser}
+                disabled={loading}
+              >
+                {loading ? 'Updating...' : 'Update User'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Invite New User</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowInviteModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  value={inviteData.email}
+                  onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div className="form-group">
+                <label>Role</label>
+                <select
+                  value={inviteData.role}
+                  onChange={(e) => setInviteData(prev => ({ ...prev, role: e.target.value as any }))}
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Company</label>
+                <select
+                  value={inviteData.companyId}
+                  onChange={(e) => setInviteData(prev => ({ ...prev, companyId: e.target.value }))}
+                >
+                  <option value="">Select Company</option>
+                  {companies.map(company => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowInviteModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={handleSendInvite}
+                disabled={!inviteData.email || loading}
+              >
+                {loading ? 'Sending...' : 'Send Invitation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminPanel;

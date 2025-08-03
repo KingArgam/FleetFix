@@ -1,46 +1,65 @@
-# Getting Started with Create React App
+# 🚚 FleetFix: Full Feature Fleet Management Platform
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A clean, web-based platform for independent trucking companies (1–50 trucks) to track maintenance, repairs, parts, and downtime.
 
-## Available Scripts
+## 🔑 Core Purpose
+Built specifically for smaller fleet operations that are underserved by large fleet systems like Fleetio or Samsara.
 
-In the project directory, you can run:
+## 🧱 Core Features (MVP)
 
-### `npm start`
+### 1. Vehicle Management
+- Add/Edit Trucks with VIN, license plate, make/model, year, mileage
+- Truck nickname or ID system
+- Status Tags: "In Service", "Out for Repair", "Needs Attention", "Retired"
 
-Runs the app in the development mode.\
+### 2. Maintenance Logs
+- Log Entries: oil change, tire replacement, engine service, brake inspection, etc.
+- Date & mileage tracking at service
+- Cost tracking and notes/images support
+- Reminders: mileage-based and date-based notifications
+
+### 3. Parts Tracking
+- Add/Track Parts with part name, part number
+- Track which trucks used specific parts
+- Cost & installation date logging
+- Optional basic inventory tracking
+
+### 4. Downtime Analytics
+- Log Downtime Events with start/end times
+- Categorize causes (scheduled maintenance, unexpected failure, accident, etc.)
+- Calculate Total Downtime per truck & fleet
+- Compare uptime % across trucks
+
+### 5. Maintenance Calendar View
+- Visual calendar of upcoming service items and completed tasks
+- Filter by truck or task type
+
+### 6. Search & Filter Dashboard
+- Filter vehicles by status, service history, mileage thresholds
+- Search part history or downtime logs
+
+### 7. CSV Export & Print Logs
+- Export maintenance or repair logs for insurance, audits, or resale
+- Printable logbooks per truck
+
+## 🌈 User Interface
+- Simple, clean layout inspired by Notion or Airtable
+- "Add Truck" and "Log Repair" are 1-click actions
+- Color-coded statuses
+- Cards or list view for trucks
+- Mobile-first design for tablet entry in garages
+
+## Getting Started
+
+```bash
+npm install
+npm start
+```
+
 Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Future Features
+- Expense Analytics
+- Document Uploads
+- Vehicle Timeline View
+- Team Management & Role-based Access
