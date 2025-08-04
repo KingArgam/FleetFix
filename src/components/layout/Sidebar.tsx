@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
-import { UserDataService } from '../../services/UserDataService';
+import userDataService from '../../services/UserDataService';
 
 interface SidebarProps {
   // Sidebar is now permanently open
@@ -19,7 +19,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
       if (!currentUser) return;
       
       try {
-        const response = await UserDataService.getParts(currentUser.id);
+        const response = await userDataService.getParts(currentUser.id);
         if (response.success && response.data) {
           const lowStock = response.data.filter((part: any) => 
             part.inventoryLevel <= (part.minQuantity || 5)
@@ -41,6 +41,8 @@ const Sidebar: React.FC<SidebarProps> = () => {
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { path: '/trucks', label: 'Trucks', icon: 'truck' },
     { path: '/maintenance', label: 'Maintenance', icon: 'wrench' },
+    { path: '/recurring-maintenance', label: 'Recurring Maintenance', icon: 'repeat' },
+    { path: '/downtime', label: 'Downtime Records', icon: 'warning' },
     { path: '/parts', label: 'Parts', icon: 'cog', badge: lowStockCount > 0 ? lowStockCount : undefined },
     { path: '/suppliers', label: 'Suppliers', icon: 'supplier' },
     { path: '/analytics', label: 'Analytics', icon: 'chart' },
@@ -129,6 +131,18 @@ const Sidebar: React.FC<SidebarProps> = () => {
         return (
           <svg {...iconProps}>
             <path d="M17,11C17,10.34 16.67,9.74 16.12,9.4L13,7.59V6A1,1 0 0,0 12,5A1,1 0 0,0 11,6V7.59L7.88,9.4C7.33,9.74 7,10.34 7,11V16A1,1 0 0,0 8,17H16A1,1 0 0,0 17,16V11M12,3A3,3 0 0,1 15,6H13.5A1.5,1.5 0 0,0 12,4.5A1.5,1.5 0 0,0 10.5,6H9A3,3 0 0,1 12,3Z"/>
+          </svg>
+        );
+      case 'repeat':
+        return (
+          <svg {...iconProps}>
+            <path d="M17 17H7V14L3 18l4 4v-3h12v-2zM7 7h10v3l4-4-4-4v3H5v2h2z"/>
+          </svg>
+        );
+      case 'warning':
+        return (
+          <svg {...iconProps}>
+            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
           </svg>
         );
       default:

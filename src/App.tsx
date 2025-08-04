@@ -10,6 +10,7 @@ import PartsPage from './components/pages/PartsPage';
 import CalendarPage from './components/pages/CalendarPage';
 import LoginPage from './components/pages/LoginPage';
 import SignupPage from './components/pages/SignupPage';
+import { PasswordResetPage } from './components/pages/PasswordResetPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 // New enterprise features
 import AdminPanel from './components/pages/AdminPanel';
@@ -18,6 +19,9 @@ import SupplierManager from './components/pages/SupplierManager';
 import AnalyticsDashboard from './components/pages/AnalyticsDashboard';
 import NotificationCenter from './components/pages/NotificationCenter';
 import UserProfilePage from './components/pages/UserProfilePage';
+import { DowntimeRecordsPage } from './components/pages/DowntimeRecordsPage';
+import { EnhancedCalendarPage } from './components/pages/EnhancedCalendarPage';
+import { RecurringMaintenancePage } from './components/pages/RecurringMaintenancePage';
 import './App.css';
 import './styles/enhanced-features.css';
 
@@ -29,6 +33,7 @@ const App: React.FC = () => {
           {/* Authentication Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/password-reset" element={<PasswordResetPage onBack={() => window.history.back()} />} />
           
           {/* Protected Routes */}
           <Route path="/*" element={
@@ -77,7 +82,15 @@ const AppContent: React.FC = () => {
             />
             <Route 
               path="/calendar" 
-              element={<CalendarPage />} 
+              element={<EnhancedCalendarPage />} 
+            />
+            <Route 
+              path="/downtime" 
+              element={<DowntimeRecordsPage />} 
+            />
+            <Route 
+              path="/recurring-maintenance" 
+              element={<RecurringMaintenancePage />} 
             />
             {/* New Enterprise Features */}
             <Route 

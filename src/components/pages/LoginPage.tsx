@@ -45,26 +45,8 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!formData.email) {
-      setError('Please enter your email address first.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const result = await authService.resetPassword(formData.email);
-      
-      if ('error' in result) {
-        setError(result.error.message);
-      } else {
-        alert('Password reset email sent! Check your inbox.');
-      }
-    } catch (err) {
-      setError('Failed to send password reset email.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleForgotPassword = () => {
+    navigate('/password-reset');
   };
 
   return (
