@@ -3,7 +3,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { EventApi, DateSelectArg, EventClickArg, EventDropArg, EventResizeArg } from '@fullcalendar/core';
+import { EventApi, DateSelectArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
+import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import userDataService, { MaintenanceData, TruckData } from '../../services/UserDataService';
 import { useAppContext } from '../../contexts/AppContext';
 import { notificationService } from '../../services/NotificationService';
@@ -544,13 +545,16 @@ export const EnhancedCalendarPage: React.FC = () => {
     }
   }, [events]);
 
-  const handleEventDrop = useCallback((dropInfo: EventDropArg) => {
+  const handleEventDrop = useCallback(async (dropInfo: EventDropArg) => {
     const eventId = dropInfo.event.id;
+    const newStartDate = dropInfo.event.start!;
+    
+    // Update local state
     const updatedEvents = events.map(event => 
       event.id === eventId 
         ? { 
             ...event, 
-            start: dropInfo.event.start!,
+            start: newStartDate,
             end: dropInfo.event.end || undefined
           }
         : event
@@ -559,29 +563,95 @@ export const EnhancedCalendarPage: React.FC = () => {
     setEvents(updatedEvents);
     saveCalendarEvents(updatedEvents);
     
-    notificationService.addNotification({
-      type: 'info',
-      title: 'Event Moved',
-      message: `${dropInfo.event.title} has been rescheduled`,
-      priority: 'low',
-      actionRequired: false
-    });
+    // If this is a maintenance event, sync with backend
+    if (eventId.startsWith('maintenance-')) {
+      try {
+        const maintenanceId = eventId.replace('maintenance-', '');
+        await userDataService.updateMaintenance(maintenanceId, {
+          scheduledDate: newStartDate
+        });
+        
+        notificationService.addNotification({
+          type: 'info',
+          title: 'Maintenance Rescheduled',
+          message: `${dropInfo.event.title} has been rescheduled to ${newStartDate.toLocaleDateString()}`,
+          priority: 'low',
+          actionRequired: false
+        });
+      } catch (error) {
+        console.error('Error updating maintenance date:', error);
+        
+        // Revert the change if backend update fails
+        setEvents(events);
+        
+        notificationService.addNotification({
+          type: 'alert',
+          title: 'Update Failed',
+          message: 'Failed to update maintenance schedule. Please try again.',
+          priority: 'medium',
+          actionRequired: false
+        });
+      }
+    } else {
+      notificationService.addNotification({
+        type: 'info',
+        title: 'Event Moved',
+        message: `${dropInfo.event.title} has been rescheduled`,
+        priority: 'low',
+        actionRequired: false
+      });
+    }
   }, [events]);
 
-  const handleEventResize = useCallback((resizeInfo: EventResizeArg) => {
+  const handleEventResize = useCallback(async (resizeInfo: EventResizeDoneArg) => {
     const eventId = resizeInfo.event.id;
+    const newStartDate = resizeInfo.event.start!;
+    const newEndDate = resizeInfo.event.end;
+    
+    // Update local state
     const updatedEvents = events.map(event => 
       event.id === eventId 
         ? { 
             ...event, 
-            start: resizeInfo.event.start!,
-            end: resizeInfo.event.end || undefined
+            start: newStartDate,
+            end: newEndDate || undefined
           }
         : event
     );
     
     setEvents(updatedEvents);
     saveCalendarEvents(updatedEvents);
+    
+    // If this is a maintenance event, sync with backend
+    if (eventId.startsWith('maintenance-')) {
+      try {
+        const maintenanceId = eventId.replace('maintenance-', '');
+        await userDataService.updateMaintenance(maintenanceId, {
+          scheduledDate: newStartDate
+        });
+        
+        notificationService.addNotification({
+          type: 'info',
+          title: 'Maintenance Updated',
+          message: `${resizeInfo.event.title} duration has been updated`,
+          priority: 'low',
+          actionRequired: false
+        });
+      } catch (error) {
+        console.error('Error updating maintenance date:', error);
+        
+        // Revert the change if backend update fails
+        setEvents(events);
+        
+        notificationService.addNotification({
+          type: 'alert',
+          title: 'Update Failed',
+          message: 'Failed to update maintenance schedule. Please try again.',
+          priority: 'medium',
+          actionRequired: false
+        });
+      }
+    }
   }, [events]);
 
   const getEventColor = (event: CalendarEvent): string => {
