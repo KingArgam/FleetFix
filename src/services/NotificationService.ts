@@ -1,4 +1,3 @@
-import { EmailService } from './EmailService';
 import { Truck, MaintenanceEntry, Part } from '../types';
 
 interface Notification {
@@ -29,16 +28,17 @@ interface NotificationPreferences {
   };
 }
 
-class NotificationService {
-  private notifications: Notification[] = [];
-  private listeners: Array<(notifications: Notification[]) => void> = [];
-  private preferences: NotificationPreferences;
-  private emailService: EmailService;
+type NotificationListener = (notifications: Notification[]) => void;
 
-  constructor() {
+class NotificationService {
+  private static instance: NotificationService;
+  private notifications: Notification[] = [];
+  private listeners: NotificationListener[] = [];
+  private preferences: NotificationPreferences;
+
+  private constructor() {
     this.preferences = this.loadPreferences();
     this.loadNotifications();
-    this.emailService = EmailService.getInstance();
     this.requestPermission();
     this.startMonitoring();
   }
@@ -292,24 +292,6 @@ class NotificationService {
     });
   }
 
-  public async addNotificationWithEmail(
-    data: Omit<Notification, 'id' | 'timestamp' | 'read'>, 
-    userEmail?: string,
-    truckInfo?: { make: string; model: string; year: number; vin: string }
-  ): Promise<void> {
-    const notification: Notification = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      timestamp: new Date(),
-      read: false,
-      ...data
-    };
-
-    this.notifications.unshift(notification);
-    this.saveNotifications();
-    this.notifyListeners();
-    await this.sendNotification(notification, userEmail, truckInfo);
-  }
-
   public addNotification(data: Omit<Notification, 'id' | 'timestamp' | 'read'>): void {
     const notification: Notification = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -324,11 +306,7 @@ class NotificationService {
     this.sendNotification(notification);
   }
 
-  private async sendNotification(
-    notification: Notification, 
-    userEmail?: string,
-    truckInfo?: { make: string; model: string; year: number; vin: string }
-  ): Promise<void> {
+  private sendNotification(notification: Notification): void {
     if (this.isQuietHours()) {
       console.log('Notification suppressed due to quiet hours:', notification.title);
       return;
@@ -346,46 +324,6 @@ class NotificationService {
         });
       } catch (error) {
         console.error('Error showing browser notification:', error);
-      }
-    }
-
-    // Send Email Notification if email is provided
-    if (userEmail && notification.type === 'maintenance' && truckInfo) {
-      try {
-        if (notification.title.toLowerCase().includes('due') || notification.title.toLowerCase().includes('reminder')) {
-          await this.emailService.sendMaintenanceReminder(
-            userEmail,
-            truckInfo,
-            notification.title,
-            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Default 7 days from now
-          );
-        } else if (notification.title.toLowerCase().includes('completed')) {
-          await this.emailService.sendMaintenanceCompleteNotification(
-            userEmail,
-            truckInfo,
-            notification.title,
-            'System',
-            new Date()
-          );
-        }
-      } catch (error) {
-        console.error('Error sending email notification:', error);
-      }
-    } else if (userEmail && notification.type === 'part') {
-      try {
-        if (notification.title.toLowerCase().includes('low') || notification.title.toLowerCase().includes('inventory')) {
-          // Extract part name from message
-          const partName = notification.message.match(/Part: (.+?) has/)?.[1] || 'Unknown Part';
-          await this.emailService.sendLowInventoryAlert(
-            userEmail,
-            partName,
-            1, // current level - would need to be passed in
-            5, // min level - would need to be passed in
-            'Warehouse A'
-          );
-        }
-      } catch (error) {
-        console.error('Error sending email notification:', error);
       }
     }
   }
@@ -471,6 +409,13 @@ class NotificationService {
     });
   }
 
+  public static getInstance(): NotificationService {
+    if (!NotificationService.instance) {
+      NotificationService.instance = new NotificationService();
+    }
+    return NotificationService.instance;
+  }
+
   public triggerMaintenanceAlert(): void {
     this.addNotification({
       type: 'maintenance',
@@ -488,5 +433,5 @@ class NotificationService {
 }
 
 // Create and export singleton instance
-export const notificationService = new NotificationService();
+export const notificationService = NotificationService.getInstance();
 export type { Notification, NotificationPreferences };

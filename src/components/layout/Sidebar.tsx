@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
+import { UserDataService } from '../../services/UserDataService';
 
 interface SidebarProps {
   // Sidebar is now permanently open
@@ -10,12 +11,37 @@ const Sidebar: React.FC<SidebarProps> = () => {
   const { state } = useAppContext();
   const { currentUser } = state;
   const location = useLocation();
+  const [lowStockCount, setLowStockCount] = useState(0);
+
+  useEffect(() => {
+    // Check for low stock alerts
+    const checkLowStock = async () => {
+      if (!currentUser) return;
+      
+      try {
+        const response = await UserDataService.getParts(currentUser.id);
+        if (response.success && response.data) {
+          const lowStock = response.data.filter((part: any) => 
+            part.inventoryLevel <= (part.minQuantity || 5)
+          );
+          setLowStockCount(lowStock.length);
+        }
+      } catch (error) {
+        console.error('Error checking low stock:', error);
+      }
+    };
+
+    checkLowStock();
+    // Check every 5 minutes
+    const interval = setInterval(checkLowStock, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
   
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { path: '/trucks', label: 'Trucks', icon: 'truck' },
     { path: '/maintenance', label: 'Maintenance', icon: 'wrench' },
-    { path: '/parts', label: 'Parts', icon: 'cog' },
+    { path: '/parts', label: 'Parts', icon: 'cog', badge: lowStockCount > 0 ? lowStockCount : undefined },
     { path: '/suppliers', label: 'Suppliers', icon: 'supplier' },
     { path: '/analytics', label: 'Analytics', icon: 'chart' },
     { path: '/calendar', label: 'Calendar', icon: 'calendar' },
@@ -125,6 +151,11 @@ const Sidebar: React.FC<SidebarProps> = () => {
             >
               <span className="nav-icon">{renderIcon(item.icon)}</span>
               <span className="nav-label">{item.label}</span>
+              {item.badge && (
+                <span className="nav-badge">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           );
         })}

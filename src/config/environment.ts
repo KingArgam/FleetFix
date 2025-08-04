@@ -17,11 +17,7 @@ export interface EnvironmentConfig {
     CSV_IMPORT: boolean;
   };
   NOTIFICATIONS: {
-    SENDGRID_API_KEY?: string;
-    SENDGRID_FROM_EMAIL?: string;
-    TWILIO_ACCOUNT_SID?: string;
-    TWILIO_AUTH_TOKEN?: string;
-    TWILIO_PHONE_NUMBER?: string;
+    // Email functionality removed - only push notifications supported
   };
 }
 
@@ -43,12 +39,8 @@ const developmentConfig: EnvironmentConfig = {
     CSV_IMPORT: true,
   },
   NOTIFICATIONS: {
-    SENDGRID_API_KEY: process.env.REACT_APP_SENDGRID_API_KEY,
-    SENDGRID_FROM_EMAIL: process.env.REACT_APP_SENDGRID_FROM_EMAIL || 'noreply@fleetfix.com',
-    TWILIO_ACCOUNT_SID: process.env.REACT_APP_TWILIO_ACCOUNT_SID,
-    TWILIO_AUTH_TOKEN: process.env.REACT_APP_TWILIO_AUTH_TOKEN,
-    TWILIO_PHONE_NUMBER: process.env.REACT_APP_TWILIO_PHONE_NUMBER,
-  }
+    // Email functionality removed - only push notifications supported
+  },
 };
 
 // Staging environment
@@ -69,11 +61,7 @@ const stagingConfig: EnvironmentConfig = {
     CSV_IMPORT: true,
   },
   NOTIFICATIONS: {
-    SENDGRID_API_KEY: process.env.REACT_APP_SENDGRID_API_KEY,
-    SENDGRID_FROM_EMAIL: process.env.REACT_APP_SENDGRID_FROM_EMAIL || 'noreply@fleetfix.com',
-    TWILIO_ACCOUNT_SID: process.env.REACT_APP_TWILIO_ACCOUNT_SID,
-    TWILIO_AUTH_TOKEN: process.env.REACT_APP_TWILIO_AUTH_TOKEN,
-    TWILIO_PHONE_NUMBER: process.env.REACT_APP_TWILIO_PHONE_NUMBER,
+    // Email functionality removed - only push notifications supported
   }
 };
 
@@ -95,11 +83,7 @@ const productionConfig: EnvironmentConfig = {
     CSV_IMPORT: true,
   },
   NOTIFICATIONS: {
-    SENDGRID_API_KEY: process.env.REACT_APP_SENDGRID_API_KEY,
-    SENDGRID_FROM_EMAIL: process.env.REACT_APP_SENDGRID_FROM_EMAIL || 'noreply@fleetfix.com',
-    TWILIO_ACCOUNT_SID: process.env.REACT_APP_TWILIO_ACCOUNT_SID,
-    TWILIO_AUTH_TOKEN: process.env.REACT_APP_TWILIO_AUTH_TOKEN,
-    TWILIO_PHONE_NUMBER: process.env.REACT_APP_TWILIO_PHONE_NUMBER,
+    // Email functionality removed - only push notifications supported
   }
 };
 
@@ -121,12 +105,7 @@ const mockConfig: EnvironmentConfig = {
     CSV_IMPORT: false,
   },
   NOTIFICATIONS: {
-    // Mock environment uses simulation only
-    SENDGRID_API_KEY: undefined,
-    SENDGRID_FROM_EMAIL: 'noreply@fleetfix.com',
-    TWILIO_ACCOUNT_SID: undefined,
-    TWILIO_AUTH_TOKEN: undefined,
-    TWILIO_PHONE_NUMBER: undefined,
+    // Email functionality removed - only push notifications supported
   }
 };
 
