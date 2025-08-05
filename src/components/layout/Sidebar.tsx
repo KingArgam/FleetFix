@@ -19,13 +19,8 @@ const Sidebar: React.FC<SidebarProps> = () => {
       if (!currentUser) return;
       
       try {
-        const response = await userDataService.getParts(currentUser.id);
-        if (response.success && response.data) {
-          const lowStock = response.data.filter((part: any) => 
-            part.inventoryLevel <= (part.minQuantity || 5)
-          );
-          setLowStockCount(lowStock.length);
-        }
+        const lowStockParts = await userDataService.getLowStockParts(currentUser.id);
+        setLowStockCount(lowStockParts.length);
       } catch (error) {
         console.error('Error checking low stock:', error);
       }

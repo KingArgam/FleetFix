@@ -10,7 +10,8 @@ import {
   updateEmail,
   updatePassword,
   EmailAuthProvider,
-  reauthenticateWithCredential
+  reauthenticateWithCredential,
+  deleteUser
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -344,6 +345,22 @@ class AuthenticationService {
       await setDoc(userDocRef, data, { merge: true });
     } catch (error) {
       console.error('Error updating user data:', error);
+      throw error;
+    }
+  }
+
+  async deleteAccount(): Promise<void> {
+    if (!auth.currentUser) {
+      throw new Error('No authenticated user found');
+    }
+
+    try {
+      await deleteUser(auth.currentUser);
+      this.currentUser = null;
+      localStorage.removeItem('authToken');
+      this.notifyAuthStateListeners(null);
+    } catch (error) {
+      console.error('Error deleting account:', error);
       throw error;
     }
   }

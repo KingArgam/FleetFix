@@ -1,7 +1,22 @@
 // Firebase configuration and initialization
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { 
+  getAuth, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  updateProfile,
+  updateEmail,
+  updatePassword,
+  sendEmailVerification,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  User as FirebaseUser
+} from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
@@ -39,5 +54,22 @@ export const isFirebaseConfigured = () => {
 };
 
 export const isFirebaseEnabled = process.env.REACT_APP_USE_FIREBASE === 'true';
+
+// Export auth functions for use in services
+export {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  updateProfile,
+  updateEmail,
+  updatePassword,
+  sendEmailVerification,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  type FirebaseUser
+};
 
 export default app;

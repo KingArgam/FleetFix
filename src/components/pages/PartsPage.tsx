@@ -1,29 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { PartForm } from '../forms/PartForm';
 import { useAppContext } from '../../contexts/AppContext';
-import userDataService from '../../services/UserDataService';
+import userDataService, { PartData } from '../../services/UserDataService';
 import { notificationService } from '../../services/NotificationService';
 import '../../styles/enhanced.css';
 
-interface Part {
-  id: string;
-  name: string;
-  partNumber: string;
-  category: string;
-  cost: number;
-  inventoryLevel: number;
-  minQuantity: number;
-  maxQuantity: number;
-  supplier: string;
-  location?: string;
-  description?: string;
-  lastUpdated: Date;
-}
-
 const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
-  const { currentUser } = useAppContext();
+  const { state } = useAppContext();
+  const { currentUser } = state;
   const [showPartForm, setShowPartForm] = useState(false);
-  const [parts, setParts] = useState<Part[]>(propParts || []);
+  const [parts, setParts] = useState<PartData[]>(propParts || []);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -38,7 +24,7 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
 
   useEffect(() => {
     // Check for low stock alerts on load and when parts change
-    checkLowStockAlerts();
+    checkLowStockAlerts(parts);
   }, [parts, alertThreshold]);
 
   const loadParts = async () => {
@@ -46,10 +32,8 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
     
     try {
       setLoading(true);
-      const response = await UserDataService.getParts(currentUser.id);
-      if (response.success && response.data) {
-        setParts(response.data);
-      }
+      const partsData = await userDataService.getParts(currentUser.id);
+      setParts(partsData);
     } catch (error) {
       console.error('Error loading parts:', error);
     } finally {
@@ -57,32 +41,21 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
     }
   };
 
-  const checkLowStockAlerts = () => {
-    parts.forEach(part => {
-      if (part.inventoryLevel <= part.minQuantity) {
-        // Only add notification if it doesn't already exist
-        const existingNotifications = notificationService.getNotifications();
-        const hasExistingAlert = existingNotifications.some(n => 
-          n.relatedEntity?.id === part.id && 
-          n.type === 'part' && 
-          !n.read &&
-          n.title.includes('Low Stock')
-        );
-
-        if (!hasExistingAlert) {
-          notificationService.addNotification({
+  const checkLowStockAlerts = (partsData: PartData[]) => {
+    partsData.forEach(part => {
+      if (part.quantity <= part.minQuantity) {
+        notificationService.addNotification({
+          type: 'part',
+          title: 'Low Stock Alert',
+          message: `${part.name} (${part.partNumber}) is running low: ${part.quantity} remaining (min: ${part.minQuantity})`,
+          priority: part.quantity === 0 ? 'urgent' : 'high',
+          actionRequired: true,
+          relatedEntity: {
             type: 'part',
-            title: 'Low Stock Alert',
-            message: `${part.name} (${part.partNumber}) is running low: ${part.inventoryLevel} remaining (min: ${part.minQuantity})`,
-            priority: part.inventoryLevel === 0 ? 'urgent' : 'high',
-            actionRequired: true,
-            relatedEntity: {
-              type: 'part',
-              id: part.id,
-              name: part.name
-            }
-          });
-        }
+            id: part.id,
+            name: part.name
+          }
+        });
       }
     });
   };
@@ -97,21 +70,18 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
     loadParts(); // Reload to get updated data
   };
 
-  const getStockStatus = (part: Part) => {
-    const percentage = (part.inventoryLevel / part.maxQuantity) * 100;
-    if (part.inventoryLevel === 0) return { status: 'out-of-stock', color: '#ff4444', label: 'Out of Stock' };
-    if (part.inventoryLevel <= part.minQuantity) return { status: 'low', color: '#ff8800', label: 'Low Stock' };
-    if (percentage <= 25) return { status: 'low', color: '#ffaa00', label: 'Low' };
-    if (percentage <= 50) return { status: 'medium', color: '#ffdd00', label: 'Medium' };
-    return { status: 'good', color: '#00aa00', label: 'Good' };
+  const getPartStatus = (part: PartData) => {
+    if (part.quantity === 0) return { status: 'out-of-stock', color: '#ff4444', label: 'Out of Stock' };
+    if (part.quantity <= part.minQuantity) return { status: 'low', color: '#ff8800', label: 'Low Stock' };
+    return { status: 'normal', color: '#22c55e', label: 'In Stock' };
   };
 
   const getLowStockCount = () => {
-    return parts.filter(part => part.inventoryLevel <= part.minQuantity).length;
+    return parts.filter(part => part.quantity <= part.minQuantity).length;
   };
 
   const getOutOfStockCount = () => {
-    return parts.filter(part => part.inventoryLevel === 0).length;
+    return parts.filter(part => part.quantity === 0).length;
   };
 
   const filteredParts = parts.filter(part => {
@@ -121,7 +91,7 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
     
     const matchesCategory = filterCategory === 'all' || part.category === filterCategory;
     
-    const matchesStockFilter = !showLowStockOnly || part.inventoryLevel <= part.minQuantity;
+    const matchesStockFilter = !showLowStockOnly || part.quantity <= part.minQuantity;
     
     return matchesSearch && matchesCategory && matchesStockFilter;
   });
@@ -230,7 +200,7 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
             </div>
           ) : (
             filteredParts.map((part) => {
-              const stockStatus = getStockStatus(part);
+              const stockStatus = getPartStatus(part);
               return (
                 <div key={part.id} className={`part-card ${stockStatus.status}`}>
                   {/* Stock Status Badge */}
@@ -239,10 +209,10 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
                   </div>
                   
                   {/* Low Stock Alert Badge */}
-                  {part.inventoryLevel <= part.minQuantity && (
-                    <div className="alert-indicator">
-                      {part.inventoryLevel === 0 ? '🚨' : '⚠️'}
-                    </div>
+                  {part.quantity <= part.minQuantity && (
+                    <span className="alert-icon">
+                      {part.quantity === 0 ? '🚨' : '⚠️'}
+                    </span>
                   )}
 
                   <div className="part-header">
@@ -265,10 +235,10 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
                       <span>Stock:</span>
                       <div className="stock-info">
                         <span className={`stock-level ${stockStatus.status}`}>
-                          {part.inventoryLevel}
+                          {part.quantity}
                         </span>
                         <span className="stock-range">
-                          / {part.maxQuantity} (min: {part.minQuantity})
+                          (min: {part.minQuantity})
                         </span>
                       </div>
                     </div>
@@ -278,7 +248,7 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
                       <div 
                         className="stock-fill"
                         style={{ 
-                          width: `${Math.min((part.inventoryLevel / part.maxQuantity) * 100, 100)}%`,
+                          width: `${Math.min((part.quantity / (part.minQuantity * 2)) * 100, 100)}%`,
                           backgroundColor: stockStatus.color
                         }}
                       />
@@ -309,7 +279,7 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
                     </button>
                     <button 
                       className="btn-primary btn-sm"
-                      disabled={part.inventoryLevel === 0}
+                      disabled={part.quantity === 0}
                     >
                       📦 Order
                     </button>
@@ -346,7 +316,7 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
         <div className="stat-item">
           <span className="stat-label">Total Value:</span>
           <span className="stat-value">
-            ${parts.reduce((total, part) => total + (part.cost * part.inventoryLevel), 0).toFixed(2)}
+            ${parts.reduce((total, part) => total + (part.cost * part.quantity), 0).toFixed(2)}
           </span>
         </div>
       </div>
