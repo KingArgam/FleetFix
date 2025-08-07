@@ -126,6 +126,24 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
         </div>
       </div>
 
+      {/* Low Stock Alert Banner */}
+      {getLowStockCount() > 0 && (
+        <div className="low-stock-banner">
+          <div className="banner-content">
+            <span className="alert-icon">⚠️</span>
+            <div className="banner-text">
+              <strong>Low Stock Alert:</strong> {getLowStockCount()} {getLowStockCount() === 1 ? 'part is' : 'parts are'} running low on stock.
+            </div>
+            <button 
+              className="btn-secondary btn-sm"
+              onClick={() => setShowLowStockOnly(true)}
+            >
+              View Low Stock Items
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Search and Filter Controls */}
       <div className="search-filter-bar">
         <div className="search-box">

@@ -347,6 +347,43 @@ export const EnhancedCalendarPage: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterTruck, setFilterTruck] = useState<string>('all');
 
+  // Color-code events based on type and status
+  const getEventClassNames = (arg: any) => {
+    const event = arg.event;
+    const extendedProps = event.extendedProps;
+    
+    const classNames = ['calendar-event'];
+    
+    // Color by event type
+    if (extendedProps.type) {
+      classNames.push(`event-type-${extendedProps.type}`);
+    }
+    
+    // Color by maintenance status
+    if (extendedProps.status) {
+      classNames.push(`event-status-${extendedProps.status}`);
+    }
+    
+    // Special handling for maintenance events
+    if (event.id && event.id.includes('maintenance-')) {
+      classNames.push('maintenance-event');
+      
+      const dueDate = new Date(event.start);
+      const today = new Date();
+      const daysDiff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff < 0) {
+        classNames.push('overdue');
+      } else if (daysDiff <= 7) {
+        classNames.push('due-soon');
+      } else {
+        classNames.push('scheduled');
+      }
+    }
+    
+    return classNames;
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -654,6 +691,88 @@ export const EnhancedCalendarPage: React.FC = () => {
     }
   }, [events]);
 
+  // ICS Calendar Export Function
+  const handleExportCalendar = () => {
+    const icsContent = generateICSCalendar(filteredEvents);
+    downloadICSFile(icsContent, `fleetfix-calendar-${new Date().toISOString().split('T')[0]}.ics`);
+    
+    notificationService.addNotification({
+      type: 'info',
+      title: 'Calendar Exported',
+      message: 'Calendar events have been exported to ICS file',
+      priority: 'low',
+      actionRequired: false
+    });
+  };
+
+  const generateICSCalendar = (events: CalendarEvent[]): string => {
+    const formatDate = (date: Date): string => {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+
+    const escapeText = (text: string): string => {
+      return text.replace(/[\\,;]/g, '\\$&').replace(/\n/g, '\\n');
+    };
+
+    let icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//FleetFix//Fleet Management Calendar//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'X-WR-CALNAME:FleetFix Fleet Management',
+      'X-WR-CALDESC:Fleet maintenance and operations calendar',
+      'X-WR-TIMEZONE:UTC'
+    ];
+
+    events.forEach(event => {
+      const startDate = formatDate(event.start);
+      const endDate = event.end ? formatDate(event.end) : formatDate(new Date(event.start.getTime() + 60 * 60 * 1000)); // Default 1 hour duration
+      const uid = `${event.id}@fleetfix.com`;
+      const dtstamp = formatDate(new Date());
+
+      let description = [];
+      if (event.description) description.push(event.description);
+      if (event.truckName) description.push(`Truck: ${event.truckName}`);
+      if (event.assignedTo) description.push(`Assigned to: ${event.assignedTo}`);
+      if (event.location) description.push(`Location: ${event.location}`);
+      if (event.cost) description.push(`Estimated cost: $${event.cost}`);
+      description.push(`Priority: ${event.priority}`);
+      description.push(`Status: ${event.status}`);
+
+      icsContent.push(
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${dtstamp}`,
+        `DTSTART:${startDate}`,
+        `DTEND:${endDate}`,
+        `SUMMARY:${escapeText(event.title)}`,
+        `DESCRIPTION:${escapeText(description.join('\\n'))}`,
+        `CATEGORIES:${event.type.toUpperCase()}`,
+        `PRIORITY:${event.priority === 'urgent' ? '1' : event.priority === 'high' ? '3' : event.priority === 'medium' ? '5' : '7'}`,
+        `STATUS:${event.status === 'completed' ? 'CONFIRMED' : event.status === 'cancelled' ? 'CANCELLED' : 'TENTATIVE'}`,
+        event.location ? `LOCATION:${escapeText(event.location)}` : '',
+        'END:VEVENT'
+      );
+    });
+
+    icsContent.push('END:VCALENDAR');
+    return icsContent.filter(line => line !== '').join('\r\n');
+  };
+
+  const downloadICSFile = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const getEventColor = (event: CalendarEvent): string => {
     const typeColors = {
       maintenance: '#3b82f6',
@@ -738,12 +857,21 @@ export const EnhancedCalendarPage: React.FC = () => {
               ))}
             </select>
           </div>
-          <button 
-            className="btn-primary"
-            onClick={() => setShowEventForm(true)}
-          >
-            + Add Event
-          </button>
+          <div className="export-controls">
+            <button 
+              className="btn-secondary"
+              onClick={handleExportCalendar}
+              title="Export calendar to ICS file"
+            >
+              📅 Export Calendar
+            </button>
+            <button 
+              className="btn-primary"
+              onClick={() => setShowEventForm(true)}
+            >
+              + Add Event
+            </button>
+          </div>
         </div>
       </div>
 
@@ -785,6 +913,7 @@ export const EnhancedCalendarPage: React.FC = () => {
           dayMaxEvents={true}
           weekends={true}
           events={calendarEvents}
+          eventClassNames={getEventClassNames}
           select={handleDateSelect}
           eventClick={handleEventClick}
           eventDrop={handleEventDrop}

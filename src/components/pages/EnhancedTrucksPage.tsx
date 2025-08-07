@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, AlertTriangle, Download, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Edit, Trash2, AlertTriangle, Download, Upload, Eye } from 'lucide-react';
 import { SearchFilters, TruckStatus, Truck } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
 import { TruckForm } from '../forms/TruckForm';
@@ -7,16 +8,23 @@ import { SearchAndFilter } from '../common/SearchAndFilter';
 import '../../styles/enhanced.css';
 
 const EnhancedTrucksPage: React.FC = () => {
+  const navigate = useNavigate();
   const { state, addTruck, updateTruck, deleteTruck, saveTempTruckForm, clearTempTruckForm } = useAppContext();
   const { trucks, loading, tempTruckForm } = state;
   
   const [filteredTrucks, setFilteredTrucks] = useState<Truck[]>([]);
+  const [paginatedTrucks, setPaginatedTrucks] = useState<Truck[]>([]);
   const [showTruckForm, setShowTruckForm] = useState(false);
   const [editingTruck, setEditingTruck] = useState<Truck | undefined>();
   const [selectedTrucks, setSelectedTrucks] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const totalPages = Math.ceil(filteredTrucks.length / itemsPerPage);
 
   const applyFilters = useCallback(() => {
     let filtered = state.trucks;
@@ -42,7 +50,17 @@ const EnhancedTrucksPage: React.FC = () => {
     }
 
     setFilteredTrucks(filtered);
+    
+    // Reset to first page when filters change
+    setCurrentPage(1);
   }, [state.trucks, searchQuery, filters]);
+
+  // Pagination effect
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    setPaginatedTrucks(filteredTrucks.slice(startIndex, endIndex));
+  }, [filteredTrucks, currentPage, itemsPerPage]);
 
   const handleTruckSaved = (truck: Truck) => {
     setShowTruckForm(false);
@@ -55,6 +73,10 @@ const EnhancedTrucksPage: React.FC = () => {
     setShowTruckForm(true);
   };
 
+  const handleViewTruckDetails = (truck: Truck) => {
+    navigate(`/trucks/${truck.id}`);
+  };
+
   const handleDeleteTruck = async (truck: Truck) => {
     if (window.confirm(`Are you sure you want to delete ${truck.licensePlate}? This action cannot be undone.`)) {
       try {
@@ -65,6 +87,18 @@ const EnhancedTrucksPage: React.FC = () => {
         alert('Failed to delete truck. Please try again.');
       }
     }
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedTrucks([]); // Clear selections when changing pages
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+    setSelectedTrucks([]);
   };
 
     const handleBulkStatusUpdate = async (status: TruckStatus) => {
@@ -96,6 +130,74 @@ const EnhancedTrucksPage: React.FC = () => {
       setSelectedTrucks([]);
     } else {
       setSelectedTrucks(filteredTrucks.map((truck: Truck) => truck.id));
+    }
+  };
+
+  const handleStartDowntime = async (truck: Truck) => {
+    const reason = prompt(`Why is ${truck.licensePlate} going out of service?`);
+    if (!reason) return;
+
+    try {
+      // Create downtime record
+      const downtimeData = {
+        truckId: truck.id,
+        truckLicense: truck.licensePlate,
+        startTime: new Date(),
+        reason: reason,
+        category: 'unscheduled',
+        isActive: true,
+        createdBy: state.currentUser?.id || '',
+        updatedBy: state.currentUser?.id || ''
+      };
+
+      // Add to localStorage for now (in real app, this would go to Firestore)
+      const existingDowntime = JSON.parse(localStorage.getItem('downtimeRecords') || '[]');
+      const newDowntime = {
+        ...downtimeData,
+        id: Date.now().toString(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      existingDowntime.push(newDowntime);
+      localStorage.setItem('downtimeRecords', JSON.stringify(existingDowntime));
+
+      // Update truck status
+      await updateTruck(truck.id, { status: 'Out for Repair' });
+      
+      console.log('Started downtime for truck:', truck.licensePlate);
+    } catch (error) {
+      console.error('Error starting downtime:', error);
+      alert('Failed to start downtime. Please try again.');
+    }
+  };
+
+  const handleEndDowntime = async (truck: Truck) => {
+    const notes = prompt(`Any notes for ending downtime for ${truck.licensePlate}?`);
+    
+    try {
+      // Find and update the active downtime record
+      const existingDowntime = JSON.parse(localStorage.getItem('downtimeRecords') || '[]');
+      const activeDowntime = existingDowntime.find((d: any) => 
+        d.truckId === truck.id && d.isActive
+      );
+
+      if (activeDowntime) {
+        activeDowntime.endTime = new Date();
+        activeDowntime.isActive = false;
+        activeDowntime.notes = notes || '';
+        activeDowntime.duration = new Date().getTime() - new Date(activeDowntime.startTime).getTime();
+        activeDowntime.updatedAt = new Date();
+        
+        localStorage.setItem('downtimeRecords', JSON.stringify(existingDowntime));
+      }
+
+      // Update truck status back to in service
+      await updateTruck(truck.id, { status: 'In Service' });
+      
+      console.log('Ended downtime for truck:', truck.licensePlate);
+    } catch (error) {
+      console.error('Error ending downtime:', error);
+      alert('Failed to end downtime. Please try again.');
     }
   };
 
@@ -153,11 +255,17 @@ const EnhancedTrucksPage: React.FC = () => {
 
   const renderCardView = () => (
     <div className="trucks-grid">
-      {filteredTrucks.map((truck: Truck) => (
+      {paginatedTrucks.map((truck: Truck) => (
         <div key={truck.id} className="truck-card">
           <div className="truck-card-header">
             <div className="truck-info">
-              <h3>{truck.make} {truck.model}</h3>
+              <h3 
+                onClick={() => handleViewTruckDetails(truck)}
+                className="truck-title-clickable"
+                title="View truck details"
+              >
+                {truck.make} {truck.model}
+              </h3>
               <span className="truck-license">{truck.licensePlate}</span>
             </div>
             <div className="truck-actions">
@@ -167,6 +275,31 @@ const EnhancedTrucksPage: React.FC = () => {
                 onChange={() => handleSelectTruck(truck.id)}
                 className="truck-checkbox"
               />
+              {/* Downtime Actions */}
+              {truck.status === 'In Service' ? (
+                <button 
+                  onClick={() => handleStartDowntime(truck)} 
+                  className="action-btn downtime-start"
+                  title="Start Downtime"
+                >
+                  <span>⏹️</span>
+                </button>
+              ) : truck.status === 'Out for Repair' ? (
+                <button 
+                  onClick={() => handleEndDowntime(truck)} 
+                  className="action-btn downtime-end"
+                  title="End Downtime"
+                >
+                  <span>▶️</span>
+                </button>
+              ) : null}
+              <button 
+                onClick={() => handleViewTruckDetails(truck)} 
+                className="action-btn view"
+                title="View Details"
+              >
+                <Eye size={16} />
+              </button>
               <button onClick={() => handleEditTruck(truck)} className="action-btn edit">
                 <Edit size={16} />
               </button>
@@ -231,7 +364,7 @@ const EnhancedTrucksPage: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredTrucks.map((truck: Truck) => (
+          {paginatedTrucks.map((truck: Truck) => (
             <tr key={truck.id}>
               <td>
                 <input
@@ -250,6 +383,13 @@ const EnhancedTrucksPage: React.FC = () => {
               <td>{truck.nickname || '-'}</td>
               <td>
                 <div className="table-actions">
+                  <button 
+                    onClick={() => handleViewTruckDetails(truck)} 
+                    className="action-btn view" 
+                    title="View Details"
+                  >
+                    <Eye size={16} />
+                  </button>
                   <button onClick={() => handleEditTruck(truck)} className="action-btn edit" title="Edit">
                     <Edit size={16} />
                   </button>
@@ -346,6 +486,60 @@ const EnhancedTrucksPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Pagination Controls */}
+      {filteredTrucks.length > 0 && (
+        <div className="pagination-controls">
+          <div className="pagination-info">
+            <span>
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredTrucks.length)} of {filteredTrucks.length} trucks
+            </span>
+            <div className="items-per-page">
+              <label>Show:</label>
+              <select 
+                value={itemsPerPage} 
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+              >
+                <option value={6}>6</option>
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+                <option value={48}>48</option>
+              </select>
+              <span>per page</span>
+            </div>
+          </div>
+          
+          {totalPages > 1 && (
+            <div className="pagination-buttons">
+              <button 
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="pagination-btn"
+              >
+                Previous
+              </button>
+              
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                >
+                  {page}
+                </button>
+              ))}
+              
+              <button 
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="pagination-btn"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {filteredTrucks.length === 0 ? (
         <div className="empty-state">

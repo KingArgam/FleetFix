@@ -6,15 +6,18 @@ import {
   getDocs, 
   updateDoc, 
   deleteDoc, 
+  addDoc,
   query, 
   where, 
   orderBy, 
-  onSnapshot,
+  limit,
+  Timestamp,
   serverTimestamp,
-  writeBatch,
-  addDoc
+  onSnapshot,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { RateLimitService } from './RateLimitService';
 import { User } from '../types';
 
 // Data types for different collections
@@ -210,6 +213,24 @@ export interface NotificationData {
 
 class UserDataService {
   private listeners: Map<string, () => void> = new Map();
+  private rateLimitService = new RateLimitService();
+
+  // Rate limiting wrapper for write operations
+  private async rateLimitedOperation<T>(operation: string, userId: string, fn: () => Promise<T>): Promise<T> {
+    const endpoint = `/api/${operation}`;
+    const rateLimitResult = this.rateLimitService.checkRateLimit(endpoint, { 
+      userId, 
+      operation,
+      timestamp: Date.now(),
+      ip: 'localhost' // In real app, get from request
+    });
+    
+    if (!rateLimitResult.allowed) {
+      throw new Error(`Rate limit exceeded for ${operation}. Try again in ${Math.ceil(rateLimitResult.retryAfter! / 1000)} seconds.`);
+    }
+    
+    return await fn();
+  }
 
   // Generic CRUD operations
   private async createDocument<T>(collectionName: string, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'> & { userId: string }) {
@@ -293,7 +314,9 @@ class UserDataService {
 
   // Truck operations
   async createTruck(userId: string, truckData: Omit<TruckData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) {
-    return this.createDocument<TruckData>('trucks', { ...truckData, userId });
+    return this.rateLimitedOperation('createTruck', userId, () => 
+      this.createDocument<TruckData>('trucks', { ...truckData, userId })
+    );
   }
 
   async updateTruck(id: string, data: Partial<TruckData>) {
@@ -314,7 +337,9 @@ class UserDataService {
 
   // Maintenance operations
   async createMaintenance(userId: string, maintenanceData: Omit<MaintenanceData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) {
-    return this.createDocument<MaintenanceData>('maintenance', { ...maintenanceData, userId });
+    return this.rateLimitedOperation('createMaintenance', userId, () => 
+      this.createDocument<MaintenanceData>('maintenance', { ...maintenanceData, userId })
+    );
   }
 
   async updateMaintenance(id: string, data: Partial<MaintenanceData>) {
@@ -353,9 +378,11 @@ class UserDataService {
     }
   }
 
-  // Parts operations
+  // Part operations
   async createPart(userId: string, partData: Omit<PartData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) {
-    return this.createDocument<PartData>('parts', { ...partData, userId });
+    return this.rateLimitedOperation('createPart', userId, () => 
+      this.createDocument<PartData>('parts', { ...partData, userId })
+    );
   }
 
   async updatePart(id: string, data: Partial<PartData>) {
@@ -376,7 +403,9 @@ class UserDataService {
 
   // Supplier operations
   async createSupplier(userId: string, supplierData: Omit<SupplierData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) {
-    return this.createDocument<SupplierData>('suppliers', { ...supplierData, userId });
+    return this.rateLimitedOperation('createSupplier', userId, () => 
+      this.createDocument<SupplierData>('suppliers', { ...supplierData, userId })
+    );
   }
 
   async updateSupplier(id: string, data: Partial<SupplierData>) {
