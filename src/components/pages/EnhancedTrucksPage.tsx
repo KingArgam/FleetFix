@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2, AlertTriangle, Download, Upload } from 'lucide-react';
-import { SearchFilters, TruckStatus } from '../../types';
+import { SearchFilters, TruckStatus, Truck } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
-import { TruckData } from '../../services/UserDataService';
-import userDataService from '../../services/UserDataService';
 import { TruckForm } from '../forms/TruckForm';
 import { SearchAndFilter } from '../common/SearchAndFilter';
 import '../../styles/enhanced.css';
@@ -12,16 +10,16 @@ const EnhancedTrucksPage: React.FC = () => {
   const { state, addTruck, updateTruck, deleteTruck, saveTempTruckForm, clearTempTruckForm } = useAppContext();
   const { trucks, loading, tempTruckForm } = state;
   
-  const [filteredTrucks, setFilteredTrucks] = useState<TruckData[]>([]);
+  const [filteredTrucks, setFilteredTrucks] = useState<Truck[]>([]);
   const [showTruckForm, setShowTruckForm] = useState(false);
-  const [editingTruck, setEditingTruck] = useState<TruckData | undefined>();
+  const [editingTruck, setEditingTruck] = useState<Truck | undefined>();
   const [selectedTrucks, setSelectedTrucks] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
 
   const applyFilters = useCallback(() => {
-    let filtered = trucks;
+    let filtered = state.trucks;
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -44,20 +42,20 @@ const EnhancedTrucksPage: React.FC = () => {
     }
 
     setFilteredTrucks(filtered);
-  }, [trucks, searchQuery, filters]);
+  }, [state.trucks, searchQuery, filters]);
 
-  const handleTruckSaved = (truck: TruckData) => {
+  const handleTruckSaved = (truck: Truck) => {
     setShowTruckForm(false);
     setEditingTruck(undefined);
     // Data will be updated automatically via AppContext
   };
 
-  const handleEditTruck = (truck: TruckData) => {
+  const handleEditTruck = (truck: Truck) => {
     setEditingTruck(truck);
     setShowTruckForm(true);
   };
 
-  const handleDeleteTruck = async (truck: TruckData) => {
+  const handleDeleteTruck = async (truck: Truck) => {
     if (window.confirm(`Are you sure you want to delete ${truck.licensePlate}? This action cannot be undone.`)) {
       try {
         await deleteTruck(truck.id);
@@ -97,7 +95,7 @@ const EnhancedTrucksPage: React.FC = () => {
     if (selectedTrucks.length === filteredTrucks.length) {
       setSelectedTrucks([]);
     } else {
-      setSelectedTrucks(filteredTrucks.map((truck: TruckData) => truck.id));
+      setSelectedTrucks(filteredTrucks.map((truck: Truck) => truck.id));
     }
   };
 
@@ -105,7 +103,7 @@ const EnhancedTrucksPage: React.FC = () => {
     const headers = ['Make', 'Model', 'Year', 'License Plate', 'VIN', 'Status', 'Mileage'];
     const csvContent = [
       headers.join(','),
-      ...filteredTrucks.map((truck: TruckData) => [
+      ...filteredTrucks.map((truck: Truck) => [
         truck.make,
         truck.model,
         truck.year,
@@ -155,7 +153,7 @@ const EnhancedTrucksPage: React.FC = () => {
 
   const renderCardView = () => (
     <div className="trucks-grid">
-      {filteredTrucks.map((truck: TruckData) => (
+      {filteredTrucks.map((truck: Truck) => (
         <div key={truck.id} className="truck-card">
           <div className="truck-card-header">
             <div className="truck-info">
@@ -233,7 +231,7 @@ const EnhancedTrucksPage: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredTrucks.map((truck: TruckData) => (
+          {filteredTrucks.map((truck: Truck) => (
             <tr key={truck.id}>
               <td>
                 <input

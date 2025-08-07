@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Calendar, Clock, MapPin, Plus, X } from 'lucide-react';
 import { MaintenanceReminder, Truck, MaintenanceType } from '../../types';
-import { useDataService } from '../../services/DataService';
+import { useAppContext } from '../../contexts/AppContext';
 import { mockMaintenanceReminders } from '../../utils/enhancedMockData';
 
 interface ReminderCardProps {
@@ -255,7 +255,7 @@ const ReminderForm: React.FC<ReminderFormProps> = ({
 };
 
 export const MaintenanceReminders: React.FC = () => {
-  const { dataService } = useDataService();
+  const { state } = useAppContext();
   const [reminders, setReminders] = useState<MaintenanceReminder[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -267,7 +267,7 @@ export const MaintenanceReminders: React.FC = () => {
   }, []);
 
   const loadData = () => {
-    setTrucks(dataService.getTrucks());
+    setTrucks(state.trucks);
     setReminders(mockMaintenanceReminders); // In real app, would load from service
   };
 

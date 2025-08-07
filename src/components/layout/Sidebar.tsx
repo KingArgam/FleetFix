@@ -34,22 +34,20 @@ const Sidebar: React.FC<SidebarProps> = () => {
   
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { path: '/trucks', label: 'Trucks', icon: 'truck' },
+    { path: '/trucks', label: 'Fleet Management', icon: 'truck' },
     { path: '/maintenance', label: 'Maintenance', icon: 'wrench' },
-    { path: '/recurring-maintenance', label: 'Recurring Maintenance', icon: 'repeat' },
-    { path: '/downtime', label: 'Downtime Records', icon: 'warning' },
-    { path: '/parts', label: 'Parts', icon: 'cog', badge: lowStockCount > 0 ? lowStockCount : undefined },
+    { path: '/parts', label: 'Parts & Inventory', icon: 'cog', badge: lowStockCount > 0 ? lowStockCount : undefined },
     { path: '/suppliers', label: 'Suppliers', icon: 'supplier' },
-    { path: '/analytics', label: 'Analytics', icon: 'chart' },
-    { path: '/calendar', label: 'Calendar', icon: 'calendar' },
-    { path: '/bulk-manager', label: 'Bulk Manager', icon: 'upload' },
-    { path: '/notifications', label: 'Notifications', icon: 'bell' },
-    { path: '/profile', label: 'Profile', icon: 'user' },
+    { path: '/analytics', label: 'Analytics & Reports', icon: 'chart' },
+    { path: '/calendar', label: 'Schedule Calendar', icon: 'calendar' },
   ];
 
   // Add admin-only navigation items
   if (currentUser?.role === 'admin') {
-    navItems.push({ path: '/admin', label: 'Admin Panel', icon: 'admin' });
+    navItems.push(
+      { path: '/admin', label: 'Admin Panel', icon: 'admin' },
+      { path: '/bulk-manager', label: 'Bulk Operations', icon: 'upload' }
+    );
   }
 
   const renderIcon = (iconName: string) => {

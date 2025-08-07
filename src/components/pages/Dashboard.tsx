@@ -1,14 +1,28 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 
 const Dashboard: React.FC = () => {
   const { state } = useAppContext();
   const { trucks, maintenance, loading } = state;
-  
-  const activeTrucks = trucks?.filter((t) => t.status === 'In Service').length || 0;
-  const trucksInMaintenance = trucks?.filter((t) => t.status === 'Out for Repair' || t.status === 'Needs Attention').length || 0;
-  const retiredTrucks = trucks?.filter((t) => t.status === 'Retired').length || 0;
-  const pendingMaintenance = maintenance?.filter((m) => m.status === 'scheduled').length || 0;
+
+  // Memoize calculations to prevent re-computation on every render
+  const dashboardStats = useMemo(() => {
+    if (!trucks || !maintenance) return {
+      activeTrucks: 0,
+      trucksInMaintenance: 0,
+      retiredTrucks: 0,
+      pendingMaintenance: 0,
+      totalTrucks: 0
+    };
+
+    return {
+      activeTrucks: trucks.filter((t) => t.status === 'In Service').length,
+      trucksInMaintenance: trucks.filter((t) => t.status === 'Out for Repair' || t.status === 'Needs Attention').length,
+      retiredTrucks: trucks.filter((t) => t.status === 'Retired').length,
+      pendingMaintenance: maintenance.filter((m) => m.status === 'scheduled').length,
+      totalTrucks: trucks.length
+    };
+  }, [trucks, maintenance]);
 
   if (loading) {
     return (
@@ -29,28 +43,28 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-4 mb-6">
         <div className="card">
           <div className="card-body text-center">
-            <div className="stat-number">{trucks?.length || 0}</div>
+            <div className="stat-number">{dashboardStats.totalTrucks}</div>
             <div className="stat-label">Total Trucks</div>
           </div>
         </div>
         
         <div className="card">
           <div className="card-body text-center">
-            <div className="stat-number text-green-600">{activeTrucks}</div>
+            <div className="stat-number text-green-600">{dashboardStats.activeTrucks}</div>
             <div className="stat-label">In Service</div>
           </div>
         </div>
         
         <div className="card">
           <div className="card-body text-center">
-            <div className="stat-number text-red-600">{trucksInMaintenance}</div>
+            <div className="stat-number text-red-600">{dashboardStats.trucksInMaintenance}</div>
             <div className="stat-label">In Maintenance</div>
           </div>
         </div>
         
         <div className="card">
           <div className="card-body text-center">
-            <div className="stat-number text-yellow-600">{pendingMaintenance}</div>
+            <div className="stat-number text-yellow-600">{dashboardStats.pendingMaintenance}</div>
             <div className="stat-label">Pending Maintenance</div>
           </div>
         </div>
@@ -69,7 +83,7 @@ const Dashboard: React.FC = () => {
                   <span>{entry.cost ? `$${entry.cost}` : 'No cost'}</span>
                 </div>
                 <div className="text-sm text-gray-500">
-                  {new Date(entry.scheduledDate).toLocaleDateString()}
+                  {new Date(entry.date).toLocaleDateString()}
                 </div>
               </div>
             )) || <p>No maintenance entries found</p>}

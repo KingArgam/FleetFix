@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, Building2, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Building2, Users, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import authService from '../../services/AuthService';
 import '../../styles/auth.css';
 
@@ -11,16 +11,14 @@ const SignupPage: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    companyName: ''
+    companyName: '',
+    teamCode: ''
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [passwordStrength, setPasswordStrength] = useState({
-    score: 0,
-    feedback: ''
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,45 +27,8 @@ const SignupPage: React.FC = () => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
+    // Clear errors when user starts typing
     if (error) setError(null);
-
-    // Check password strength
-    if (name === 'password') {
-      checkPasswordStrength(value);
-    }
-  };
-
-  const checkPasswordStrength = (password: string) => {
-    let score = 0;
-    let feedback = '';
-
-    if (password.length >= 8) score += 1;
-    if (/[a-z]/.test(password)) score += 1;
-    if (/[A-Z]/.test(password)) score += 1;
-    if (/[0-9]/.test(password)) score += 1;
-    if (/[^A-Za-z0-9]/.test(password)) score += 1;
-
-    switch (score) {
-      case 0:
-      case 1:
-        feedback = 'Very weak';
-        break;
-      case 2:
-        feedback = 'Weak';
-        break;
-      case 3:
-        feedback = 'Fair';
-        break;
-      case 4:
-        feedback = 'Good';
-        break;
-      case 5:
-        feedback = 'Strong';
-        break;
-    }
-
-    setPasswordStrength({ score, feedback });
   };
 
   const validateForm = (): string | null => {
@@ -100,7 +61,8 @@ const SignupPage: React.FC = () => {
         name: formData.name.trim(),
         email: formData.email.trim(),
         password: formData.password,
-        companyName: formData.companyName.trim() || undefined
+        companyName: formData.companyName.trim() || undefined,
+        teamCode: formData.teamCode.trim() || undefined
       });
       
       if ('error' in result) {
@@ -108,7 +70,7 @@ const SignupPage: React.FC = () => {
       } else {
         // Signup successful
         alert('Account created successfully! Please check your email to verify your account.');
-        navigate('/dashboard');
+        navigate('/login');
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
@@ -117,48 +79,41 @@ const SignupPage: React.FC = () => {
     }
   };
 
-  const getPasswordStrengthColor = () => {
-    switch (passwordStrength.score) {
-      case 0:
-      case 1:
-        return '#ff4757';
-      case 2:
-        return '#ffa726';
-      case 3:
-        return '#ffeb3b';
-      case 4:
-        return '#66bb6a';
-      case 5:
-        return '#4caf50';
-      default:
-        return '#e0e0e0';
+  const getPasswordStrength = (password: string) => {
+    if (password.length === 0) return { strength: 0, label: '' };
+    if (password.length < 6) return { strength: 1, label: 'Weak' };
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+      return { strength: 2, label: 'Medium' };
     }
+    return { strength: 3, label: 'Strong' };
   };
+
+  const passwordStrength = getPasswordStrength(formData.password);
 
   return (
     <div className="auth-container">
-      <div className="auth-card signup-card">
+      <div className="auth-card">
         <div className="auth-header">
           <div className="auth-logo">
             <div className="logo-icon">🚚</div>
             <h1>FleetFix</h1>
           </div>
-          <h2>Create Account</h2>
-          <p>Join FleetFix to manage your fleet efficiently</p>
+          <h2>Create Your Account</h2>
+          <p>Join FleetFix to streamline your fleet management</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          {error && (
-            <div className="error-alert">
-              <AlertCircle size={16} />
-              <span>{error}</span>
-            </div>
-          )}
+        {error && (
+          <div className="error-banner">
+            <AlertCircle size={20} />
+            <span>{error}</span>
+          </div>
+        )}
 
+        <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="name">Full Name *</label>
-            <div className={`input-with-icon ${!formData.name ? 'has-icon' : ''}`}>
-              {!formData.name && <User size={18} className="input-icon" />}
+            <label htmlFor="name">Full Name</label>
+            <div className="input-with-icon has-icon">
+              <User size={18} className="input-icon" />
               <input
                 type="text"
                 id="name"
@@ -173,16 +128,16 @@ const SignupPage: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email Address *</label>
-            <div className={`input-with-icon ${!formData.email ? 'has-icon' : ''}`}>
-              {!formData.email && <Mail size={18} className="input-icon" />}
+            <label htmlFor="email">Email Address</label>
+            <div className="input-with-icon has-icon">
+              <Mail size={18} className="input-icon" />
               <input
                 type="email"
                 id="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                placeholder="Enter your email"
+                placeholder="Enter your email address"
                 required
                 disabled={isLoading}
               />
@@ -191,8 +146,8 @@ const SignupPage: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="companyName">Company Name (Optional)</label>
-            <div className={`input-with-icon ${!formData.companyName ? 'has-icon' : ''}`}>
-              {!formData.companyName && <Building2 size={18} className="input-icon" />}
+            <div className="input-with-icon has-icon">
+              <Building2 size={18} className="input-icon" />
               <input
                 type="text"
                 id="companyName"
@@ -206,9 +161,28 @@ const SignupPage: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password *</label>
-            <div className={`input-with-icon ${!formData.password ? 'has-icon' : 'has-toggle'}`}>
-              {!formData.password && <Lock size={18} className="input-icon" />}
+            <label htmlFor="teamCode">Team Code (Optional)</label>
+            <div className="input-with-icon has-icon">
+              <Users size={18} className="input-icon" />
+              <input
+                type="text"
+                id="teamCode"
+                name="teamCode"
+                value={formData.teamCode}
+                onChange={handleInputChange}
+                placeholder="Enter team code to join existing team"
+                disabled={isLoading}
+              />
+            </div>
+            <small className="field-hint">
+              If you have a team code from your organization, enter it here to join their fleet.
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <div className="input-with-icon has-icon has-toggle">
+              <Lock size={18} className="input-icon" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 id="password"
@@ -219,42 +193,35 @@ const SignupPage: React.FC = () => {
                 required
                 disabled={isLoading}
               />
-              {formData.password && (
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              )}
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
+            
             {formData.password && (
               <div className="password-strength">
                 <div className="strength-bar">
                   <div 
-                    className="strength-fill"
-                    style={{ 
-                      width: `${(passwordStrength.score / 5) * 100}%`,
-                      backgroundColor: getPasswordStrengthColor()
-                    }}
+                    className={`strength-fill strength-${passwordStrength.strength}`}
+                    style={{ width: `${(passwordStrength.strength / 3) * 100}%` }}
                   />
                 </div>
-                <span 
-                  className="strength-text"
-                  style={{ color: getPasswordStrengthColor() }}
-                >
-                  {passwordStrength.feedback}
+                <span className={`strength-label strength-${passwordStrength.strength}`}>
+                  {passwordStrength.label}
                 </span>
               </div>
             )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password *</label>
-            <div className={`input-with-icon ${!formData.confirmPassword ? 'has-icon' : 'has-toggle'}`}>
-              {!formData.confirmPassword && <Lock size={18} className="input-icon" />}
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <div className="input-with-icon has-icon has-toggle">
+              <Lock size={18} className="input-icon" />
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 id="confirmPassword"
@@ -265,30 +232,34 @@ const SignupPage: React.FC = () => {
                 required
                 disabled={isLoading}
               />
-              {formData.confirmPassword && (
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={isLoading}
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              )}
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isLoading}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
-            {formData.confirmPassword && formData.password === formData.confirmPassword && (
+            
+            {formData.confirmPassword && formData.password && (
               <div className="password-match">
-                <CheckCircle size={16} color="#4caf50" />
-                <span>Passwords match</span>
+                {formData.password === formData.confirmPassword ? (
+                  <div className="match-success">
+                    <CheckCircle size={16} color="#4caf50" />
+                    <span>Passwords match</span>
+                  </div>
+                ) : (
+                  <div className="match-error">
+                    <AlertCircle size={16} color="#f44336" />
+                    <span>Passwords don't match</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          <button 
-            type="submit" 
-            className="auth-submit-btn"
-            disabled={isLoading || !formData.name || !formData.email || !formData.password || !formData.confirmPassword}
-          >
+          <button type="submit" className="auth-button" disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 size={18} className="loading-spinner" />

@@ -16,20 +16,57 @@ import {
   mockUsers 
 } from '../utils/enhancedMockData';
 
-// Enhanced Data Service with CRUD Operations
+// Enhanced Data Service with CRUD Operations and LocalStorage Persistence
 export class DataService {
   private static instance: DataService;
-  private trucks: Truck[] = [...mockTrucks];
-  private maintenanceEntries: MaintenanceEntry[] = [...mockMaintenanceEntries];
-  private parts: Part[] = [...mockParts];
-  private downtimeEvents: DowntimeEvent[] = [...mockDowntimeEvents];
+  private trucks: Truck[] = [];
+  private maintenanceEntries: MaintenanceEntry[] = [];
+  private parts: Part[] = [];
+  private downtimeEvents: DowntimeEvent[] = [];
   private currentUser = mockUsers[0]; // Default to admin user
+
+  private constructor() {
+    this.loadFromStorage();
+  }
 
   static getInstance(): DataService {
     if (!DataService.instance) {
       DataService.instance = new DataService();
     }
     return DataService.instance;
+  }
+
+  // Load data from localStorage or use mock data as fallback
+  private loadFromStorage(): void {
+    try {
+      const storedTrucks = localStorage.getItem('fleetfix_trucks');
+      const storedMaintenance = localStorage.getItem('fleetfix_maintenance');
+      const storedParts = localStorage.getItem('fleetfix_parts');
+      const storedDowntime = localStorage.getItem('fleetfix_downtime');
+
+      this.trucks = storedTrucks ? JSON.parse(storedTrucks) : [...mockTrucks];
+      this.maintenanceEntries = storedMaintenance ? JSON.parse(storedMaintenance) : [...mockMaintenanceEntries];
+      this.parts = storedParts ? JSON.parse(storedParts) : [...mockParts];
+      this.downtimeEvents = storedDowntime ? JSON.parse(storedDowntime) : [...mockDowntimeEvents];
+    } catch (error) {
+      console.error('Error loading from storage, using mock data:', error);
+      this.trucks = [...mockTrucks];
+      this.maintenanceEntries = [...mockMaintenanceEntries];
+      this.parts = [...mockParts];
+      this.downtimeEvents = [...mockDowntimeEvents];
+    }
+  }
+
+  // Save data to localStorage
+  private saveToStorage(): void {
+    try {
+      localStorage.setItem('fleetfix_trucks', JSON.stringify(this.trucks));
+      localStorage.setItem('fleetfix_maintenance', JSON.stringify(this.maintenanceEntries));
+      localStorage.setItem('fleetfix_parts', JSON.stringify(this.parts));
+      localStorage.setItem('fleetfix_downtime', JSON.stringify(this.downtimeEvents));
+    } catch (error) {
+      console.error('Error saving to storage:', error);
+    }
   }
 
   // Validation utilities
@@ -174,6 +211,7 @@ export class DataService {
     };
 
     this.trucks.push(newTruck);
+    this.saveToStorage(); // Save to localStorage
     this.logAuditEntry('create', 'truck', newTruck.id);
 
     return { success: true, data: newTruck };
@@ -235,6 +273,7 @@ export class DataService {
     }
 
     this.trucks.splice(truckIndex, 1);
+    this.saveToStorage(); // Save to localStorage
     this.logAuditEntry('delete', 'truck', id);
 
     return { success: true };
@@ -263,6 +302,7 @@ export class DataService {
     };
 
     this.maintenanceEntries.push(newEntry);
+    this.saveToStorage(); // Save to localStorage
     this.logAuditEntry('create', 'maintenance', newEntry.id);
 
     return { success: true, data: newEntry };
@@ -309,6 +349,7 @@ export class DataService {
     }
 
     this.maintenanceEntries.splice(entryIndex, 1);
+    this.saveToStorage(); // Save to localStorage
     this.logAuditEntry('delete', 'maintenance', id);
 
     return { success: true };
@@ -336,6 +377,7 @@ export class DataService {
     };
 
     this.parts.push(newPart);
+    this.saveToStorage(); // Save to localStorage
     this.logAuditEntry('create', 'part', newPart.id);
 
     return { success: true, data: newPart };
@@ -382,6 +424,7 @@ export class DataService {
     }
 
     this.parts.splice(partIndex, 1);
+    this.saveToStorage(); // Save to localStorage
     this.logAuditEntry('delete', 'part', id);
 
     return { success: true };

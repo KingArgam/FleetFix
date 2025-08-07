@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import userDataService, { TruckData, MaintenanceData } from '../../services/UserDataService';
+import { Truck, MaintenanceEntry } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
 import { notificationService } from '../../services/NotificationService';
 import '../../styles/enhanced.css';
@@ -390,7 +390,7 @@ export const RecurringMaintenancePage: React.FC = () => {
   const { state } = useAppContext();
   const [templates, setTemplates] = useState<MaintenanceTemplate[]>([]);
   const [schedules, setSchedules] = useState<RecurringMaintenanceSchedule[]>([]);
-  const [trucks, setTrucks] = useState<TruckData[]>([]);
+  const [trucks, setTrucks] = useState<Truck[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<MaintenanceTemplate | undefined>();
@@ -403,8 +403,8 @@ export const RecurringMaintenancePage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [trucksData, templatesData, schedulesData] = await Promise.all([
-        userDataService.getTrucks(state.currentUser?.id || ''),
+      const trucksData = state.trucks;
+      const [templatesData, schedulesData] = await Promise.all([
         loadMaintenanceTemplates(),
         loadMaintenanceSchedules()
       ]);

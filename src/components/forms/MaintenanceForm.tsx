@@ -1,40 +1,47 @@
 import React, { useState } from 'react';
-import userDataService, { MaintenanceData } from '../../services/UserDataService';
+import { MaintenanceEntry, MaintenanceType, Truck } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
 
 interface MaintenanceFormProps {
-  maintenance?: MaintenanceData;
+  maintenance?: MaintenanceEntry;
   truckId?: string;
-  onSuccess: (maintenance: MaintenanceData) => void;
+  onSuccess: (maintenance: MaintenanceEntry) => void;
   onCancel: () => void;
-  trucks?: any[];
 }
 
 export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ 
   maintenance, 
   truckId, 
   onSuccess, 
-  onCancel,
-  trucks = []
+  onCancel
 }) => {
-  const { state } = useAppContext();
+  const { state, addMaintenance, updateMaintenance } = useAppContext();
   const [formData, setFormData] = useState({
     truckId: maintenance?.truckId || truckId || '',
-    type: maintenance?.type || 'scheduled',
-    description: maintenance?.description || '',
-    scheduledDate: maintenance?.scheduledDate ? new Date(maintenance.scheduledDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    status: maintenance?.status || 'scheduled',
-    cost: maintenance?.cost || 0,
+    type: maintenance?.type || 'General Repair' as MaintenanceType,
     notes: maintenance?.notes || '',
-    technician: maintenance?.technician || '',
-    parts: maintenance?.parts || [],
+    date: maintenance?.date ? new Date(maintenance.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    mileage: maintenance?.mileage || 0,
+    cost: maintenance?.cost || 0,
+    performedBy: maintenance?.performedBy || '',
+    invoiceNumber: maintenance?.invoiceNumber || ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
 
-  const maintenanceTypes = ['scheduled', 'emergency', 'preventive'];
-  const statusOptions = ['scheduled', 'in-progress', 'completed', 'cancelled'];
+  const maintenanceTypes: MaintenanceType[] = [
+    'Oil Change',
+    'Tire Replacement', 
+    'Brake Inspection',
+    'Engine Service',
+    'Transmission Service',
+    'DOT Inspection',
+    'General Repair',
+    'Preventive Maintenance',
+    'Emergency Repair',
+    'Annual Inspection',
+    'Safety Check'
+  ];
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -46,39 +53,37 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setErrors([]);
 
     try {
+      // Create maintenance entry object
+      const maintenanceData: MaintenanceEntry = {
+        id: maintenance?.id || Date.now().toString(),
+        truckId: formData.truckId,
+        type: formData.type,
+        date: new Date(formData.date),
+        mileage: formData.mileage,
+        cost: formData.cost,
+        notes: formData.notes,
+        performedBy: formData.performedBy,
+        invoiceNumber: formData.invoiceNumber,
+        createdAt: maintenance?.createdAt || new Date(),
+        createdBy: maintenance?.createdBy || state.currentUser?.id || 'unknown',
+        updatedAt: new Date(),
+        updatedBy: state.currentUser?.id || 'unknown'
+      };
+
       if (maintenance) {
         // Update existing maintenance
-        await userDataService.updateMaintenance(maintenance.id, {
-          ...formData,
-          scheduledDate: new Date(formData.scheduledDate),
-          cost: Number(formData.cost),
-        });
-        onSuccess(maintenance);
+        await updateMaintenance(maintenance.id, maintenanceData);
+        onSuccess(maintenanceData);
       } else {
         // Create new maintenance
-        const newMaintenanceId = await userDataService.createMaintenance(state.currentUser?.id || '', {
-          ...formData,
-          scheduledDate: new Date(formData.scheduledDate),
-          cost: Number(formData.cost),
-        });
-        
-        const newMaintenance: MaintenanceData = {
-          ...formData,
-          id: newMaintenanceId,
-          userId: state.currentUser?.id || '',
-          scheduledDate: new Date(formData.scheduledDate),
-          cost: Number(formData.cost),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        onSuccess(newMaintenance);
+        await addMaintenance(maintenanceData);
+        onSuccess(maintenanceData);
       }
     } catch (error) {
       console.error('Error saving maintenance:', error);
-      setErrors(['Failed to save maintenance. Please try again.']);
+      alert('Failed to save maintenance record. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -104,7 +109,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 className="form-control"
               >
                 <option value="">Select a truck</option>
-                {trucks.map(truck => (
+                {state.trucks.map((truck: Truck) => (
                   <option key={truck.id} value={truck.id}>
                     {truck.nickname || truck.licensePlate} - {truck.make} {truck.model}
                   </option>
@@ -128,26 +133,27 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             </div>
 
             <div className="form-group">
-              <label htmlFor="scheduledDate">Scheduled Date *</label>
-              <input 
+              <label htmlFor="date">Date *</label>
+              <input
                 type="date"
-                id="scheduledDate"
-                value={formData.scheduledDate}
-                onChange={(e) => handleInputChange('scheduledDate', e.target.value)}
+                id="date"
+                value={formData.date}
+                onChange={(e) => handleInputChange('date', e.target.value)}
                 required
                 className="form-control"
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="cost">Cost</label>
+              <label htmlFor="mileage">Mileage</label>
               <input 
                 type="number"
-                id="cost"
-                value={formData.cost}
-                onChange={(e) => handleInputChange('cost', e.target.value)}
+                id="mileage"
+                value={formData.mileage}
+                onChange={(e) => handleInputChange('mileage', parseInt(e.target.value) || 0)}
                 className="form-control"
                 min="0"
+                placeholder="Current mileage"
               />
             </div>
 
@@ -157,39 +163,38 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 type="number"
                 id="cost"
                 value={formData.cost}
-                onChange={(e) => handleInputChange('cost', e.target.value)}
+                onChange={(e) => handleInputChange('cost', parseFloat(e.target.value) || 0)}
                 className="form-control"
                 min="0"
                 step="0.01"
+                placeholder="0.00"
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="technician">Technician</label>
+              <label htmlFor="performedBy">Performed By</label>
               <input 
                 type="text"
-                id="technician"
-                value={formData.technician}
-                onChange={(e) => handleInputChange('technician', e.target.value)}
+                id="performedBy"
+                value={formData.performedBy}
+                onChange={(e) => handleInputChange('performedBy', e.target.value)}
                 className="form-control"
                 placeholder="Mechanic name or shop"
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="status">Status</label>
-              <select 
-                id="status"
-                value={formData.status}
-                onChange={(e) => handleInputChange('status', e.target.value)}
+              <label htmlFor="invoiceNumber">Invoice Number</label>
+              <input 
+                type="text"
+                id="invoiceNumber"
+                value={formData.invoiceNumber}
+                onChange={(e) => handleInputChange('invoiceNumber', e.target.value)}
                 className="form-control"
-              >
-                <option value="scheduled">Scheduled</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+                placeholder="INV-12345"
+              />
             </div>
+
           </div>
 
           <div className="form-group full-width">

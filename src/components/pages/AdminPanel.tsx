@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Mail, Shield, Search, Edit2, Trash2, AlertCircle } from 'lucide-react';
+import { Users, UserPlus, KeyIcon, Shield, Search, Edit2, Copy, RefreshCw, AlertCircle } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import userDataService, { UserProfile, CompanyData } from '../../services/UserDataService';
 
@@ -16,17 +16,33 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
   
-  // Invite form state
-  const [inviteData, setInviteData] = useState({
-    email: '',
-    role: 'viewer' as 'viewer' | 'editor' | 'admin',
-    companyId: ''
-  });
+  // Replace email invite with code generation
+  const [fleetManagerCode, setFleetManagerCode] = useState<string>('');
+  const [workerCode, setWorkerCode] = useState<string>('');
+  const [codeExpiry, setCodeExpiry] = useState<Date>(new Date());
 
   // User edit form state
   const [editUserData, setEditUserData] = useState<Partial<UserProfile>>({});
+
+  useEffect(() => {
+    loadUsers();
+    loadCompanies();
+    generateInviteCodes();
+  }, []);
+
+  const generateInviteCodes = () => {
+    // Generate unique codes for fleet managers and workers
+    const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    setFleetManagerCode(`FM-${generateCode()}`);
+    setWorkerCode(`WK-${generateCode()}`);
+    
+    // Set expiry to 30 days from now
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30);
+    setCodeExpiry(expiryDate);
+  };
 
   useEffect(() => {
     loadUsers();
@@ -115,22 +131,15 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
     }
   };
 
-  const handleSendInvite = async () => {
-    setLoading(true);
-    try {
-      // In a real implementation, you'd send an email invite
-      console.log('Sending invite to:', inviteData);
-      
-      // Reset form
-      setInviteData({ email: '', role: 'viewer', companyId: '' });
-      setShowInviteModal(false);
-      
-      // Show success message
-      alert('Invitation sent successfully!');
-    } catch (error) {
-      console.error('Error sending invite:', error);
-    } finally {
-      setLoading(false);
+  const copyCodeToClipboard = (code: string, type: string) => {
+    navigator.clipboard.writeText(code);
+    alert(`${type} code copied to clipboard: ${code}`);
+  };
+
+  const regenerateCodes = () => {
+    if (window.confirm('Are you sure you want to regenerate invitation codes? This will invalidate the current codes.')) {
+      generateInviteCodes();
+      alert('New invitation codes generated successfully!');
     }
   };
 
@@ -178,8 +187,8 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
           className={`tab-button ${activeTab === 'invites' ? 'active' : ''}`}
           onClick={() => setActiveTab('invites')}
         >
-          <Mail size={20} />
-          Invitations
+          <KeyIcon size={20} />
+          Invitation Codes
         </button>
       </div>
 
@@ -198,10 +207,10 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
               </div>
               <button 
                 className="btn btn-primary"
-                onClick={() => setShowInviteModal(true)}
+                onClick={regenerateCodes}
               >
-                <UserPlus size={20} />
-                Invite User
+                <RefreshCw size={20} />
+                Generate New Codes
               </button>
             </div>
 
@@ -289,49 +298,80 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
 
         {activeTab === 'invites' && (
           <div className="invites-tab">
-            <div className="invite-form">
-              <h3>Send Invitation</h3>
-              <div className="form-group">
-                <label>Email Address</label>
-                <input
-                  type="email"
-                  value={inviteData.email}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Enter email address"
-                />
+            <div className="invitation-codes-section">
+              <h3>User Invitation Codes</h3>
+              <p>Share these codes with users to join your fleet management system. No email required!</p>
+              
+              <div className="codes-grid">
+                <div className="code-card">
+                  <div className="code-header">
+                    <h4>Fleet Manager Code</h4>
+                    <p>For adding new fleet managers with admin privileges</p>
+                  </div>
+                  <div className="code-display">
+                    <input 
+                      type="text" 
+                      value={fleetManagerCode} 
+                      readOnly 
+                      className="code-input"
+                    />
+                    <button 
+                      className="btn btn-secondary"
+                      onClick={() => copyCodeToClipboard(fleetManagerCode, 'Fleet Manager')}
+                    >
+                      <Copy size={16} />
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                <div className="code-card">
+                  <div className="code-header">
+                    <h4>Worker Code</h4>
+                    <p>For adding drivers and maintenance workers</p>
+                  </div>
+                  <div className="code-display">
+                    <input 
+                      type="text" 
+                      value={workerCode} 
+                      readOnly 
+                      className="code-input"
+                    />
+                    <button 
+                      className="btn btn-secondary"
+                      onClick={() => copyCodeToClipboard(workerCode, 'Worker')}
+                    >
+                      <Copy size={16} />
+                      Copy
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Role</label>
-                <select
-                  value={inviteData.role}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, role: e.target.value as any }))}
-                >
-                  <option value="viewer">Viewer</option>
-                  <option value="editor">Editor</option>
-                  <option value="admin">Admin</option>
-                </select>
+
+              <div className="code-info">
+                <div className="expiry-info">
+                  <strong>Codes expire on:</strong> {codeExpiry.toLocaleDateString()}
+                </div>
+                <div className="usage-instructions">
+                  <h4>How to use:</h4>
+                  <ol>
+                    <li>Copy the appropriate code using the button above</li>
+                    <li>Share the code with the person you want to invite</li>
+                    <li>They enter the code during registration on the login page</li>
+                    <li>Their account will be automatically assigned the correct role</li>
+                  </ol>
+                </div>
+                
+                <div className="code-actions">
+                  <button 
+                    className="btn btn-warning"
+                    onClick={regenerateCodes}
+                  >
+                    <RefreshCw size={20} />
+                    Generate New Codes
+                  </button>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Company</label>
-                <select
-                  value={inviteData.companyId}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, companyId: e.target.value }))}
-                >
-                  <option value="">Select Company</option>
-                  {companies.map(company => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button 
-                className="btn btn-primary"
-                onClick={handleSendInvite}
-                disabled={!inviteData.email || loading}
-              >
-                {loading ? 'Sending...' : 'Send Invitation'}
-              </button>
             </div>
           </div>
         )}
@@ -398,74 +438,6 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
                 disabled={loading}
               >
                 {loading ? 'Updating...' : 'Update User'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Invite Modal */}
-      {showInviteModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Invite New User</h3>
-              <button 
-                className="modal-close"
-                onClick={() => setShowInviteModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Email Address</label>
-                <input
-                  type="email"
-                  value={inviteData.email}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Enter email address"
-                />
-              </div>
-              <div className="form-group">
-                <label>Role</label>
-                <select
-                  value={inviteData.role}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, role: e.target.value as any }))}
-                >
-                  <option value="viewer">Viewer</option>
-                  <option value="editor">Editor</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Company</label>
-                <select
-                  value={inviteData.companyId}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, companyId: e.target.value }))}
-                >
-                  <option value="">Select Company</option>
-                  {companies.map(company => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn btn-secondary"
-                onClick={() => setShowInviteModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn btn-primary"
-                onClick={handleSendInvite}
-                disabled={!inviteData.email || loading}
-              >
-                {loading ? 'Sending...' : 'Send Invitation'}
               </button>
             </div>
           </div>

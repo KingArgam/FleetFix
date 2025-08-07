@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import userDataService, { TruckData } from '../../services/UserDataService';
+import { Truck } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
 import { notificationService } from '../../services/NotificationService';
 import '../../styles/enhanced.css';
@@ -22,8 +22,8 @@ interface DowntimeRecord {
 
 interface DowntimeFormProps {
   record?: DowntimeRecord;
-  trucks: TruckData[];
-  onSave: (record: Omit<DowntimeRecord, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  trucks: Truck[];
+  onSave: (record: Omit<DowntimeRecord, 'id'>) => void;
   onCancel: () => void;
 }
 
@@ -54,6 +54,8 @@ const DowntimeForm: React.FC<DowntimeFormProps> = ({ record, trucks, onSave, onC
       description: formData.description,
       cost: formData.cost > 0 ? formData.cost : undefined,
       createdBy: state.currentUser?.id || 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
   };
 
@@ -176,7 +178,7 @@ const DowntimeForm: React.FC<DowntimeFormProps> = ({ record, trucks, onSave, onC
 export const DowntimeRecordsPage: React.FC = () => {
   const { state } = useAppContext();
   const [records, setRecords] = useState<DowntimeRecord[]>([]);
-  const [trucks, setTrucks] = useState<TruckData[]>([]);
+  const [trucks, setTrucks] = useState<Truck[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DowntimeRecord | undefined>();
@@ -190,12 +192,10 @@ export const DowntimeRecordsPage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [trucksData, recordsData] = await Promise.all([
-        userDataService.getTrucks(state.currentUser?.id || ''),
-        loadDowntimeRecords()
-      ]);
+      const trucksData = state.trucks;
+      const recordsData = await loadDowntimeRecords();
       
-      setTrucks(trucksData.data || []);
+      setTrucks(trucksData || []);
       setRecords(recordsData);
     } catch (error) {
       console.error('Error loading downtime data:', error);

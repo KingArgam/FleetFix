@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
-import { ValidationError, TruckStatus } from '../../types';
-import userDataService, { TruckData } from '../../services/UserDataService';
+import { Truck, TruckStatus, ValidationError } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
 import { mockCustomFields } from '../../utils/enhancedMockData';
 import '../../styles/enhanced.css';
 
 interface TruckFormProps {
-  truck?: TruckData;
-  onSuccess: (truck: TruckData) => void;
+  truck?: Truck;
+  onSuccess: (truck: Truck) => void;
   onCancel: () => void;
 }
 
 export const TruckForm: React.FC<TruckFormProps> = ({ truck, onSuccess, onCancel }) => {
-  const { addTruck, updateTruck, state } = useAppContext();
-  const [isLoading, setIsLoading] = useState(false);
+  const { state, addTruck, updateTruck } = useAppContext();
   const [formData, setFormData] = useState({
     vin: truck?.vin || '',
     licensePlate: truck?.licensePlate || '',
@@ -60,21 +58,32 @@ export const TruckForm: React.FC<TruckFormProps> = ({ truck, onSuccess, onCancel
     setErrors([]);
 
     try {
+      // Create truck object with all required fields
+      const truckData: Truck = {
+        id: truck?.id || Date.now().toString(),
+        vin: formData.vin,
+        licensePlate: formData.licensePlate,
+        make: formData.make,
+        model: formData.model,
+        year: formData.year,
+        mileage: formData.mileage,
+        nickname: formData.nickname,
+        status: formData.status as TruckStatus,
+        customFields: formData.customFields,
+        createdAt: truck?.createdAt || new Date(),
+        updatedAt: new Date(),
+        createdBy: truck?.createdBy || state.currentUser?.id || 'unknown',
+        updatedBy: state.currentUser?.id || 'unknown'
+      };
+
       if (truck) {
         // Update existing truck
-        await userDataService.updateTruck(truck.id, formData);
-        onSuccess(truck); // Pass the updated truck
+        await updateTruck(truck.id, truckData);
+        onSuccess(truckData);
       } else {
         // Create new truck
-        const newTruckId = await userDataService.createTruck(state.currentUser?.id || '', formData);
-        const newTruck: TruckData = {
-          ...formData,
-          id: newTruckId,
-          userId: state.currentUser?.id || '',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        onSuccess(newTruck);
+        await addTruck(truckData);
+        onSuccess(truckData);
       }
     } catch (error) {
       console.error('Error saving truck:', error);
@@ -287,7 +296,7 @@ export const TruckForm: React.FC<TruckFormProps> = ({ truck, onSuccess, onCancel
             <button type="button" onClick={onCancel} className="btn-secondary" disabled={isSubmitting}>
               Cancel
             </button>
-            <button type="submit" className="btn-primary" disabled={isSubmitting || isLoading}>
+            <button type="submit" className="btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Saving...' : truck ? 'Update Truck' : 'Add Truck'}
             </button>
           </div>

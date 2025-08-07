@@ -1,0 +1,2 @@
+// Component image utilities
+export {};

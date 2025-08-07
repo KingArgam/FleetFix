@@ -1,0 +1,2 @@
+// Component Palette Advanced
+export {};

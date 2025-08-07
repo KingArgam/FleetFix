@@ -1,18 +1,17 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { User } from '../types';
-import userDataService, { TruckData, MaintenanceData, PartData, UserPreferences } from '../services/UserDataService';
+import { User, Truck, MaintenanceEntry, Part } from '../types';
+import { DataService } from '../services/DataService';
 import authService from '../services/AuthService';
 
 // Global application state
 interface AppState {
   // User data
   currentUser: User | null;
-  userPreferences: UserPreferences | null;
   
   // Business data
-  trucks: TruckData[];
-  maintenance: MaintenanceData[];
-  parts: PartData[];
+  trucks: Truck[];
+  maintenance: MaintenanceEntry[];
+  parts: Part[];
   
   // UI state
   loading: boolean;
@@ -20,38 +19,36 @@ interface AppState {
   lastSyncTime: Date | null;
   
   // Form states - persist across navigation
-  tempTruckForm: Partial<TruckData> | null;
-  tempMaintenanceForm: Partial<MaintenanceData> | null;
-  tempPartForm: Partial<PartData> | null;
+  tempTruckForm: Partial<Truck> | null;
+  tempMaintenanceForm: Partial<MaintenanceEntry> | null;
+  tempPartForm: Partial<Part> | null;
 }
 
 // Action types
 type AppAction = 
   | { type: 'SET_USER'; payload: User | null }
-  | { type: 'SET_USER_PREFERENCES'; payload: UserPreferences | null }
-  | { type: 'SET_TRUCKS'; payload: TruckData[] }
-  | { type: 'ADD_TRUCK'; payload: TruckData }
-  | { type: 'UPDATE_TRUCK'; payload: { id: string; data: Partial<TruckData> } }
+  | { type: 'SET_TRUCKS'; payload: Truck[] }
+  | { type: 'ADD_TRUCK'; payload: Truck }
+  | { type: 'UPDATE_TRUCK'; payload: { id: string; data: Partial<Truck> } }
   | { type: 'DELETE_TRUCK'; payload: string }
-  | { type: 'SET_MAINTENANCE'; payload: MaintenanceData[] }
-  | { type: 'ADD_MAINTENANCE'; payload: MaintenanceData }
-  | { type: 'UPDATE_MAINTENANCE'; payload: { id: string; data: Partial<MaintenanceData> } }
+  | { type: 'SET_MAINTENANCE'; payload: MaintenanceEntry[] }
+  | { type: 'ADD_MAINTENANCE'; payload: MaintenanceEntry }
+  | { type: 'UPDATE_MAINTENANCE'; payload: { id: string; data: Partial<MaintenanceEntry> } }
   | { type: 'DELETE_MAINTENANCE'; payload: string }
-  | { type: 'SET_PARTS'; payload: PartData[] }
-  | { type: 'ADD_PART'; payload: PartData }
-  | { type: 'UPDATE_PART'; payload: { id: string; data: Partial<PartData> } }
+  | { type: 'SET_PARTS'; payload: Part[] }
+  | { type: 'ADD_PART'; payload: Part }
+  | { type: 'UPDATE_PART'; payload: { id: string; data: Partial<Part> } }
   | { type: 'DELETE_PART'; payload: string }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_SYNCING'; payload: boolean }
   | { type: 'SET_LAST_SYNC_TIME'; payload: Date }
-  | { type: 'SET_TEMP_TRUCK_FORM'; payload: Partial<TruckData> | null }
-  | { type: 'SET_TEMP_MAINTENANCE_FORM'; payload: Partial<MaintenanceData> | null }
-  | { type: 'SET_TEMP_PART_FORM'; payload: Partial<PartData> | null }
+  | { type: 'SET_TEMP_TRUCK_FORM'; payload: Partial<Truck> | null }
+  | { type: 'SET_TEMP_MAINTENANCE_FORM'; payload: Partial<MaintenanceEntry> | null }
+  | { type: 'SET_TEMP_PART_FORM'; payload: Partial<Part> | null }
   | { type: 'CLEAR_ALL_DATA' };
 
 const initialState: AppState = {
   currentUser: null,
-  userPreferences: null,
   trucks: [],
   maintenance: [],
   parts: [],
@@ -68,9 +65,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_USER':
       return { ...state, currentUser: action.payload };
-    
-    case 'SET_USER_PREFERENCES':
-      return { ...state, userPreferences: action.payload };
     
     case 'SET_TRUCKS':
       return { ...state, trucks: action.payload };
@@ -173,30 +167,28 @@ interface AppContextType {
   dispatch: React.Dispatch<AppAction>;
   
   // Convenience methods
-  addTruck: (truckData: Omit<TruckData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateTruck: (id: string, data: Partial<TruckData>) => Promise<void>;
+  addTruck: (truckData: Omit<Truck, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => Promise<void>;
+  updateTruck: (id: string, data: Partial<Truck>) => Promise<void>;
   deleteTruck: (id: string) => Promise<void>;
   
-  addMaintenance: (maintenanceData: Omit<MaintenanceData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateMaintenance: (id: string, data: Partial<MaintenanceData>) => Promise<void>;
+  addMaintenance: (maintenanceData: Omit<MaintenanceEntry, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => Promise<void>;
+  updateMaintenance: (id: string, data: Partial<MaintenanceEntry>) => Promise<void>;
   deleteMaintenance: (id: string) => Promise<void>;
   
-  addPart: (partData: Omit<PartData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updatePart: (id: string, data: Partial<PartData>) => Promise<void>;
+  addPart: (partData: Omit<Part, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => Promise<void>;
+  updatePart: (id: string, data: Partial<Part>) => Promise<void>;
   deletePart: (id: string) => Promise<void>;
   
-  saveUserPreferences: (preferences: Omit<UserPreferences, 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  
   // Form state management
-  saveTempTruckForm: (data: Partial<TruckData>) => void;
+  saveTempTruckForm: (data: Partial<Truck>) => void;
   clearTempTruckForm: () => void;
-  saveTempMaintenanceForm: (data: Partial<MaintenanceData>) => void;
+  saveTempMaintenanceForm: (data: Partial<MaintenanceEntry>) => void;
   clearTempMaintenanceForm: () => void;
-  saveTempPartForm: (data: Partial<PartData>) => void;
+  saveTempPartForm: (data: Partial<Part>) => void;
   clearTempPartForm: () => void;
   
   // Calendar helpers
-  getMaintenanceForTruck: (truckId: string) => MaintenanceData[];
+  getMaintenanceForTruck: (truckId: string) => MaintenanceEntry[];
   getCalendarEvents: () => Array<{
     id: string;
     title: string;
@@ -229,36 +221,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const unsubscribers: (() => void)[] = [];
 
     // Listen for auth state changes
-    const authUnsubscribe = authService.onAuthStateChange((user) => {
+    const authUnsubscribe = authService.onAuthStateChange(async (user) => {
       dispatch({ type: 'SET_USER', payload: user });
       
       if (user) {
-        // User logged in - set up data listeners
+        // User logged in - load data from DataService
         dispatch({ type: 'SET_LOADING', payload: true });
         
-        // Load user preferences
-        userDataService.getUserPreferences(user.id)
-          .then(preferences => {
-            dispatch({ type: 'SET_USER_PREFERENCES', payload: preferences });
-          })
-          .catch(console.error);
-
-        // Set up real-time listeners
-        const trucksUnsubscribe = userDataService.subscribeToTrucks(user.id, (trucks) => {
+        const dataService = DataService.getInstance();
+        
+        // Load all data
+        try {
+          const trucks = dataService.getTrucks();
+          const maintenance = dataService.getMaintenanceEntries();
+          const parts = dataService.getParts();
+          
           dispatch({ type: 'SET_TRUCKS', payload: trucks });
+          dispatch({ type: 'SET_MAINTENANCE', payload: maintenance });
+          dispatch({ type: 'SET_PARTS', payload: parts });
           dispatch({ type: 'SET_LOADING', payload: false });
           dispatch({ type: 'SET_LAST_SYNC_TIME', payload: new Date() });
-        });
-
-        const maintenanceUnsubscribe = userDataService.subscribeToMaintenance(user.id, (maintenance) => {
-          dispatch({ type: 'SET_MAINTENANCE', payload: maintenance });
-        });
-
-        const partsUnsubscribe = userDataService.subscribeToParts(user.id, (parts) => {
-          dispatch({ type: 'SET_PARTS', payload: parts });
-        });
-
-        unsubscribers.push(trucksUnsubscribe, maintenanceUnsubscribe, partsUnsubscribe);
+        } catch (error) {
+          console.error('Error loading data:', error);
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
       } else {
         // User logged out - clear data
         dispatch({ type: 'CLEAR_ALL_DATA' });
@@ -268,145 +254,79 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     unsubscribers.push(authUnsubscribe);
 
     return () => {
-      unsubscribers.forEach(unsubscribe => unsubscribe());
+      unsubscribers.forEach(unsub => unsub());
     };
   }, []);
 
   // Convenience methods
-  const addTruck = async (truckData: Omit<TruckData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-    if (!state.currentUser) return;
-    
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.createTruck(state.currentUser.id, truckData);
-      // The real-time listener will update the state
-    } catch (error) {
-      console.error('Error adding truck:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
+  const addTruck = async (truckData: Omit<Truck, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => {
+    const dataService = DataService.getInstance();
+    const result = await dataService.createTruck(truckData);
+    if (result.success && result.data) {
+      dispatch({ type: 'ADD_TRUCK', payload: result.data });
     }
   };
 
-  const updateTruck = async (id: string, data: Partial<TruckData>) => {
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.updateTruck(id, data);
-      // The real-time listener will update the state
-    } catch (error) {
-      console.error('Error updating truck:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
+  const updateTruck = async (id: string, data: Partial<Truck>) => {
+    const dataService = DataService.getInstance();
+    const result = await dataService.updateTruck(id, data);
+    if (result.success && result.data) {
+      dispatch({ type: 'UPDATE_TRUCK', payload: { id, data: result.data } });
     }
   };
 
   const deleteTruck = async (id: string) => {
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.deleteTruck(id);
-      // The real-time listener will update the state
-    } catch (error) {
-      console.error('Error deleting truck:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
+    const dataService = DataService.getInstance();
+    await dataService.deleteTruck(id);
+    dispatch({ type: 'DELETE_TRUCK', payload: id });
+  };
+
+  const addMaintenance = async (maintenanceData: Omit<MaintenanceEntry, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => {
+    const dataService = DataService.getInstance();
+    const result = await dataService.createMaintenanceEntry(maintenanceData);
+    if (result.success && result.data) {
+      dispatch({ type: 'ADD_MAINTENANCE', payload: result.data });
     }
   };
 
-  const addMaintenance = async (maintenanceData: Omit<MaintenanceData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-    if (!state.currentUser) return;
-    
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.createMaintenance(state.currentUser.id, maintenanceData);
-    } catch (error) {
-      console.error('Error adding maintenance:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
-    }
-  };
-
-  const updateMaintenance = async (id: string, data: Partial<MaintenanceData>) => {
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.updateMaintenance(id, data);
-    } catch (error) {
-      console.error('Error updating maintenance:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
+  const updateMaintenance = async (id: string, data: Partial<MaintenanceEntry>) => {
+    const dataService = DataService.getInstance();
+    const result = await dataService.updateMaintenanceEntry(id, data);
+    if (result.success && result.data) {
+      dispatch({ type: 'UPDATE_MAINTENANCE', payload: { id, data: result.data } });
     }
   };
 
   const deleteMaintenance = async (id: string) => {
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.deleteMaintenance(id);
-    } catch (error) {
-      console.error('Error deleting maintenance:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
+    const dataService = DataService.getInstance();
+    await dataService.deleteMaintenanceEntry(id);
+    dispatch({ type: 'DELETE_MAINTENANCE', payload: id });
+  };
+
+  const addPart = async (partData: Omit<Part, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => {
+    const dataService = DataService.getInstance();
+    const result = await dataService.createPart(partData);
+    if (result.success && result.data) {
+      dispatch({ type: 'ADD_PART', payload: result.data });
     }
   };
 
-  const addPart = async (partData: Omit<PartData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-    if (!state.currentUser) return;
-    
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.createPart(state.currentUser.id, partData);
-    } catch (error) {
-      console.error('Error adding part:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
-    }
-  };
-
-  const updatePart = async (id: string, data: Partial<PartData>) => {
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.updatePart(id, data);
-    } catch (error) {
-      console.error('Error updating part:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
+  const updatePart = async (id: string, data: Partial<Part>) => {
+    const dataService = DataService.getInstance();
+    const result = await dataService.updatePart(id, data);
+    if (result.success && result.data) {
+      dispatch({ type: 'UPDATE_PART', payload: { id, data: result.data } });
     }
   };
 
   const deletePart = async (id: string) => {
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.deletePart(id);
-    } catch (error) {
-      console.error('Error deleting part:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
-    }
-  };
-
-  const saveUserPreferences = async (preferences: Omit<UserPreferences, 'userId' | 'createdAt' | 'updatedAt'>) => {
-    if (!state.currentUser) return;
-    
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true });
-      await userDataService.saveUserPreferences(state.currentUser.id, preferences);
-      dispatch({ type: 'SET_USER_PREFERENCES', payload: { ...preferences, userId: state.currentUser.id } as UserPreferences });
-    } catch (error) {
-      console.error('Error saving user preferences:', error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false });
-    }
+    const dataService = DataService.getInstance();
+    await dataService.deletePart(id);
+    dispatch({ type: 'DELETE_PART', payload: id });
   };
 
   // Form state management
-  const saveTempTruckForm = (data: Partial<TruckData>) => {
+  const saveTempTruckForm = (data: Partial<Truck>) => {
     dispatch({ type: 'SET_TEMP_TRUCK_FORM', payload: data });
   };
 
@@ -414,7 +334,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_TEMP_TRUCK_FORM', payload: null });
   };
 
-  const saveTempMaintenanceForm = (data: Partial<MaintenanceData>) => {
+  const saveTempMaintenanceForm = (data: Partial<MaintenanceEntry>) => {
     dispatch({ type: 'SET_TEMP_MAINTENANCE_FORM', payload: data });
   };
 
@@ -422,7 +342,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_TEMP_MAINTENANCE_FORM', payload: null });
   };
 
-  const saveTempPartForm = (data: Partial<PartData>) => {
+  const saveTempPartForm = (data: Partial<Part>) => {
     dispatch({ type: 'SET_TEMP_PART_FORM', payload: data });
   };
 
@@ -430,24 +350,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_TEMP_PART_FORM', payload: null });
   };
 
-  // Helper functions
-  const getMaintenanceForTruck = (truckId: string): MaintenanceData[] => {
+  // Calendar helpers
+  const getMaintenanceForTruck = (truckId: string): MaintenanceEntry[] => {
     return state.maintenance.filter(m => m.truckId === truckId);
   };
 
   const getCalendarEvents = () => {
-    const truckMap = state.trucks.reduce((map, truck) => {
-      map[truck.id] = truck;
-      return map;
-    }, {} as Record<string, TruckData>);
+    // Create a truck lookup map for better performance
+    const truckMap = state.trucks.reduce((acc, truck) => {
+      acc[truck.id] = truck;
+      return acc;
+    }, {} as Record<string, Truck>);
 
     return state.maintenance.map(m => ({
       id: m.id,
       title: `${m.type.charAt(0).toUpperCase() + m.type.slice(1)} Maintenance`,
-      date: m.scheduledDate,
+      date: m.date,
       type: m.type,
       truckInfo: truckMap[m.truckId] ? `${truckMap[m.truckId].make} ${truckMap[m.truckId].model} (${truckMap[m.truckId].licensePlate})` : 'Unknown Truck',
-      status: m.status
+      status: m.status || 'Completed'
     }));
   };
 
@@ -463,7 +384,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     addPart,
     updatePart,
     deletePart,
-    saveUserPreferences,
     saveTempTruckForm,
     clearTempTruckForm,
     saveTempMaintenanceForm,

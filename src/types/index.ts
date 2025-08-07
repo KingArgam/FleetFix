@@ -100,6 +100,7 @@ export interface MaintenanceEntry {
   performedBy?: string;
   invoiceNumber?: string;
   warrantyExpiration?: Date;
+  status?: string;
   customFields?: Record<string, any>;
   createdAt: Date;
   createdBy: string;
@@ -384,4 +385,224 @@ export interface SearchFilters {
 export interface SortOptions {
   field: string;
   direction: 'asc' | 'desc';
+}
+
+// Calendar Event Types
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  start: Date;
+  end?: Date;
+  type: 'maintenance' | 'inspection' | 'repair' | 'delivery' | 'other';
+  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high';
+  truckId?: string;
+  truckName?: string;
+  assignedTo?: string;
+  location?: string;
+  cost?: number;
+  notes?: string;
+  reminders?: {
+    time: number; // minutes before event
+    sent: boolean;
+  }[];
+  recurrence?: {
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    interval: number;
+    endDate?: Date;
+    endAfterOccurrences?: number;
+  };
+  createdAt: Date;
+  createdBy: string;
+  updatedAt?: Date;
+  updatedBy?: string;
+}
+
+// Supplier Management Types
+export interface Supplier {
+  id: string;
+  name: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  website?: string;
+  taxId?: string;
+  paymentTerms: string;
+  rating: number; // 1-5 stars
+  notes?: string;
+  isActive: boolean;
+  categories: PartCategory[];
+  pricing: SupplierPricing[];
+  contracts?: SupplierContract[];
+  performance: SupplierPerformance;
+  createdAt: Date;
+  createdBy: string;
+  updatedAt?: Date;
+  updatedBy?: string;
+}
+
+export interface SupplierPricing {
+  partId: string;
+  partNumber: string;
+  supplierPartNumber: string;
+  price: number;
+  currency: string;
+  minimumQuantity: number;
+  leadTime: number; // days
+  validFrom: Date;
+  validTo?: Date;
+  isPreferred: boolean;
+}
+
+export interface SupplierContract {
+  id: string;
+  title: string;
+  startDate: Date;
+  endDate: Date;
+  value: number;
+  terms: string;
+  status: 'active' | 'expired' | 'terminated';
+  documents?: string[]; // file URLs
+}
+
+export interface SupplierPerformance {
+  averageLeadTime: number;
+  onTimeDeliveryRate: number; // percentage
+  qualityRating: number; // 1-5
+  costEffectiveness: number; // 1-5
+  responsiveness: number; // 1-5
+  lastUpdated: Date;
+}
+
+// Stock Alert Types
+export interface StockAlert {
+  id: string;
+  partId: string;
+  partName: string;
+  partNumber: string;
+  currentStock: number;
+  minimumStock: number;
+  reorderPoint: number;
+  alertType: 'low_stock' | 'out_of_stock' | 'overstock';
+  severity: 'info' | 'warning' | 'critical';
+  isActive: boolean;
+  lastTriggered: Date;
+  acknowledged: boolean;
+  acknowledgedBy?: string;
+  acknowledgedAt?: Date;
+  notes?: string;
+  suggestedReorderQuantity?: number;
+  estimatedCost?: number;
+  suppliers?: {
+    supplierId: string;
+    supplierName: string;
+    price: number;
+    leadTime: number;
+  }[];
+  createdAt: Date;
+}
+
+// Recurring Maintenance Types
+export interface RecurringMaintenance {
+  id: string;
+  name: string;
+  description?: string;
+  type: MaintenanceType;
+  truckIds: string[]; // Can apply to multiple trucks
+  schedule: RecurrenceSchedule;
+  estimatedDuration: number; // minutes
+  estimatedCost: number;
+  partsRequired?: {
+    partId: string;
+    quantity: number;
+  }[];
+  instructions?: string;
+  assignedTo?: string;
+  isActive: boolean;
+  nextDueDate: Date;
+  lastPerformed?: Date;
+  completedCount: number;
+  averageCost: number;
+  notifications: {
+    daysBeforeDue: number[];
+    emailEnabled: boolean;
+    smsEnabled: boolean;
+  };
+  createdAt: Date;
+  createdBy: string;
+  updatedAt?: Date;
+  updatedBy?: string;
+}
+
+export interface RecurrenceSchedule {
+  frequency: 'mileage' | 'time' | 'both';
+  mileageInterval?: number; // every X miles
+  timeInterval?: {
+    value: number;
+    unit: 'days' | 'weeks' | 'months' | 'years';
+  };
+  startDate: Date;
+  endDate?: Date;
+  maxOccurrences?: number;
+}
+
+// Password Reset Types
+export interface PasswordResetRequest {
+  id: string;
+  email: string;
+  token: string;
+  expiresAt: Date;
+  isUsed: boolean;
+  usedAt?: Date;
+  ipAddress: string;
+  userAgent: string;
+  createdAt: Date;
+}
+
+// GDPR Data Export Types
+export interface DataExportRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  requestType: 'full_export' | 'specific_data';
+  dataTypes?: string[];
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  downloadUrl?: string;
+  expiresAt?: Date;
+  requestedAt: Date;
+  completedAt?: Date;
+  fileSize?: number;
+  format: 'json' | 'csv' | 'pdf';
+}
+
+export interface UserDataPackage {
+  personal: {
+    user: User;
+    preferences: UserPreferences;
+    notifications: NotificationPreferences;
+  };
+  fleet: {
+    trucks: Truck[];
+    maintenance: MaintenanceEntry[];
+    parts: Part[];
+    downtime: DowntimeEvent[];
+    calendar: CalendarEvent[];
+  };
+  activity: {
+    auditLogs: AuditLog[];
+    loginHistory: any[];
+  };
+  exportInfo: {
+    requestedAt: Date;
+    completedAt: Date;
+    version: string;
+  };
 }

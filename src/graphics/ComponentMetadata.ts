@@ -1,0 +1,2 @@
+// Component metadata
+export {};

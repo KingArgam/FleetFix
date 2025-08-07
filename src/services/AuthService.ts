@@ -26,9 +26,10 @@ export interface AuthError {
 export interface UserRegistrationData {
   email: string;
   password: string;
-  displayName: string;
+  name: string;
   role?: 'viewer' | 'editor' | 'admin';
   companyId?: string;
+  teamCode?: string;
 }
 
 export interface ProfileUpdateData {
@@ -52,6 +53,7 @@ export interface SignupCredentials {
   password: string;
   name: string;
   companyName?: string;
+  teamCode?: string;
 }
 
 class AuthenticationService {
@@ -254,6 +256,21 @@ class AuthenticationService {
 
   async signup(credentials: SignupCredentials): Promise<{ user: User } | { error: AuthError }> {
     try {
+      // Validate team code if provided
+      if (credentials.teamCode) {
+        const validTeamCodes = [
+          'FLEET2024', 'ADMIN2024', 'DEMO2024', 'TEAM001', 'TEAM002', 'MECHANIC01'
+        ];
+        if (!validTeamCodes.includes(credentials.teamCode)) {
+          return {
+            error: {
+              code: 'invalid-team-code',
+              message: 'Invalid team code. Please contact your team administrator.'
+            }
+          };
+        }
+      }
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         credentials.email,
@@ -265,12 +282,22 @@ class AuthenticationService {
         displayName: credentials.name
       });
 
+      // Determine role based on team code
+      let userRole: 'viewer' | 'editor' | 'admin' = 'viewer';
+      if (credentials.teamCode) {
+        if (credentials.teamCode.includes('ADMIN')) {
+          userRole = 'admin';
+        } else if (credentials.teamCode.includes('MECHANIC') || credentials.teamCode.includes('TEAM')) {
+          userRole = 'editor';
+        }
+      }
+
       // Create user document in Firestore
       const userData: Partial<User> = {
         id: userCredential.user.uid,
         email: credentials.email,
         name: credentials.name,
-        role: 'viewer', // Default role
+        role: userRole,
         companyId: credentials.companyName ? 
           credentials.companyName.toLowerCase().replace(/\s+/g, '-') : 
           'default-company',

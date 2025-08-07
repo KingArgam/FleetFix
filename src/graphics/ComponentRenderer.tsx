@@ -1,0 +1,2 @@
+// Component renderer
+export {};

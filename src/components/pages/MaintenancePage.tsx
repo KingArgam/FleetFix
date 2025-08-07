@@ -58,7 +58,6 @@ const MaintenancePage: React.FC<any> = ({ trucks, maintenanceEntries, onAddEntry
 
       {showMaintenanceForm && (
         <MaintenanceForm
-          trucks={trucks}
           onSuccess={handleMaintenanceSaved}
           onCancel={() => setShowMaintenanceForm(false)}
         />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, DollarSign, Wrench, Calendar, Download, Filter, RefreshCw } from 'lucide-react';
-import userDataService, { TruckData, MaintenanceData, PartData } from '../../services/UserDataService';
+import { Truck, MaintenanceEntry, Part } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
 
 interface AnalyticsDashboardProps {}
@@ -52,8 +52,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       }
 
       // Filter maintenance records by date range
-      const filteredRecords = maintenance.filter((record: MaintenanceData) => 
-        new Date(record.scheduledDate) >= startDate
+      const filteredRecords = maintenance.filter((record: MaintenanceEntry) => 
+        new Date(record.date) >= startDate
       );
 
       // Calculate analytics
@@ -67,9 +67,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
   };
 
   const calculateAnalytics = async (
-    trucks: TruckData[], 
-    records: MaintenanceData[], 
-    parts: PartData[]
+    trucks: Truck[], 
+    records: MaintenanceEntry[], 
+    parts: Part[]
   ): Promise<AnalyticsData> => {
     // Fleet utilization (mock calculation)
     const fleetUtilization = trucks.length > 0 
@@ -89,9 +89,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     // Most common issues
     const issueCount: { [key: string]: number } = {};
     records.forEach(record => {
-      if (record.description) {
+      if (record.notes) {
         // Simple categorization based on keywords
-        const desc = record.description.toLowerCase();
+        const desc = record.notes.toLowerCase();
         if (desc.includes('oil') || desc.includes('engine')) {
           issueCount['Engine/Oil'] = (issueCount['Engine/Oil'] || 0) + 1;
         } else if (desc.includes('brake')) {
@@ -114,7 +114,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     // Maintenance trends (monthly)
     const monthlyData: { [key: string]: { cost: number; count: number } } = {};
     records.forEach(record => {
-      const month = new Date(record.scheduledDate).toLocaleString('default', { month: 'short', year: '2-digit' });
+      const month = new Date(record.date).toLocaleString('default', { month: 'short', year: '2-digit' });
       if (!monthlyData[month]) {
         monthlyData[month] = { cost: 0, count: 0 };
       }
@@ -263,7 +263,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
           <p>Date Range: ${dateRange}</p>
           
           <h2>Summary</h2>
-          <table>
+          <table className="analytics-table">
             <tr><td>Total Vehicles</td><td>${data.summary.totalVehicles}</td></tr>
             <tr><td>Fleet Utilization</td><td>${data.summary.fleetUtilization.toFixed(1)}%</td></tr>
             <tr><td>Total Maintenance Cost</td><td>$${data.summary.totalMaintenanceCost.toFixed(2)}</td></tr>
@@ -271,7 +271,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
           </table>
           
           <h2>Monthly Trends</h2>
-          <table>
+          <table className="analytics-table">
             <thead><tr><th>Month</th><th>Cost</th><th>Count</th></tr></thead>
             <tbody>
               ${data.trends.map((t: any) => 

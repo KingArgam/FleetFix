@@ -9,6 +9,14 @@ interface HeaderProps {
   // Removed sidebar props since we're making it permanently open
 }
 
+interface SearchResult {
+  id: string;
+  type: 'truck' | 'maintenance' | 'part';
+  title: string;
+  subtitle?: string;
+  details?: string;
+}
+
 const Header: React.FC<HeaderProps> = () => {
   const navigate = useNavigate();
   const { state } = useAppContext();
@@ -205,6 +213,48 @@ const Header: React.FC<HeaderProps> = () => {
   // Notification-specific handlers
   const handleMarkAsRead = (notificationId: string) => {
     notificationService.markAsRead(notificationId);
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    // Mark as read first
+    if (!notification.read) {
+      notificationService.markAsRead(notification.id);
+    }
+    
+    // Route to appropriate page based on notification type
+    switch (notification.type) {
+      case 'maintenance_due':
+      case 'maintenance_overdue':
+        navigate('/maintenance');
+        break;
+      case 'low_stock':
+      case 'out_of_stock':
+        navigate('/parts');
+        break;
+      case 'vehicle_alert':
+      case 'downtime':
+        navigate('/trucks');
+        break;
+      case 'inspection_due':
+        navigate('/calendar');
+        break;
+      case 'supplier_update':
+        navigate('/suppliers');
+        break;
+      case 'system_alert':
+      case 'user_invitation':
+        if (state.currentUser?.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+        break;
+      default:
+        navigate('/dashboard');
+    }
+    
+    // Close notifications dropdown
+    setShowNotifications(false);
   };
 
   const handleMarkAllAsRead = () => {
@@ -458,15 +508,98 @@ const Header: React.FC<HeaderProps> = () => {
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedTruck, setSelectedTruck] = useState<any>(null);
+
+  // Real-time search functionality
+  useEffect(() => {
+    if (searchQuery.trim().length > 0) {
+      const query = searchQuery.toLowerCase();
+      const results: SearchResult[] = [];
+
+      // Search trucks
+      state.trucks.forEach(truck => {
+        if (truck.make.toLowerCase().includes(query) ||
+            truck.model.toLowerCase().includes(query) ||
+            truck.licensePlate.toLowerCase().includes(query) ||
+            truck.nickname?.toLowerCase().includes(query) ||
+            truck.vin.toLowerCase().includes(query)) {
+          results.push({
+            id: truck.id,
+            type: 'truck',
+            title: `${truck.make} ${truck.model}`,
+            subtitle: `${truck.licensePlate} • ${truck.nickname || 'No nickname'}`,
+            details: `Status: ${truck.status}`
+          });
+        }
+      });
+
+      // Search maintenance entries
+      state.maintenance.forEach(maintenance => {
+        if (maintenance.type.toLowerCase().includes(query) ||
+            maintenance.notes?.toLowerCase().includes(query)) {
+          const truck = state.trucks.find(t => t.id === maintenance.truckId);
+          results.push({
+            id: maintenance.id,
+            type: 'maintenance',
+            title: `${maintenance.type} Maintenance`,
+            subtitle: truck ? `${truck.make} ${truck.model} (${truck.licensePlate})` : 'Unknown Truck',
+            details: `Cost: $${maintenance.cost}`
+          });
+        }
+      });
+
+      // Search parts
+      state.parts.forEach(part => {
+        if (part.name.toLowerCase().includes(query) ||
+            part.partNumber.toLowerCase().includes(query) ||
+            part.category.toLowerCase().includes(query)) {
+          results.push({
+            id: part.id,
+            type: 'part',
+            title: part.name,
+            subtitle: `${part.partNumber} • ${part.category}`,
+            details: `Cost: $${part.cost}`
+          });
+        }
+      });
+
+      setSearchResults(results.slice(0, 10)); // Limit to 10 results
+      setShowSearchResults(true);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  }, [searchQuery, state.trucks, state.maintenance, state.parts]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleSearchResultClick = (result: SearchResult) => {
+    if (result.type === 'truck') {
+      // Find the actual truck data by ID
+      const truck = state.trucks.find(t => t.id === result.id);
+      if (truck) {
+        setSelectedTruck(truck);
+      }
+      // Navigate to truck details or show truck modal
+      navigate(`/trucks`);
+    } else if (result.type === 'maintenance') {
+      navigate('/maintenance');
+    } else if (result.type === 'part') {
+      navigate('/parts');
+    }
+    setShowSearchResults(false);
+    setSearchQuery('');
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement global search functionality
-    const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
-    const searchQuery = formData.get('search') as string;
-    if (searchQuery.trim()) {
-      console.log('Global search for:', searchQuery);
-      // Here you would implement global search across all entities
+    if (searchResults.length > 0) {
+      handleSearchResultClick(searchResults[0]);
     }
   };
 
@@ -484,19 +617,45 @@ const Header: React.FC<HeaderProps> = () => {
       </div>
       
       <div className="header-center">
-        <form onSubmit={handleSearchSubmit} className="search-bar">
-          <span className="search-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-            </svg>
-          </span>
-          <input 
-            type="text" 
-            name="search"
-            placeholder="Search trucks, maintenance, parts..."
-            className="search-input"
-          />
-        </form>
+        <div className="search-container">
+          <form onSubmit={handleSearchSubmit} className="search-bar">
+            <span className="search-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+            </span>
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search trucks, maintenance, parts..."
+              className="search-input"
+              autoComplete="off"
+            />
+          </form>
+          
+          {showSearchResults && searchResults.length > 0 && (
+            <div className="search-results">
+              {searchResults.map((result, index) => (
+                <div 
+                  key={`${result.type}-${result.id}-${index}`}
+                  className="search-result-item"
+                  onClick={() => handleSearchResultClick(result)}
+                >
+                  <div className="search-result-icon">
+                    {result.type === 'truck' && '🚛'}
+                    {result.type === 'maintenance' && '🔧'}
+                    {result.type === 'part' && '⚙️'}
+                  </div>
+                  <div className="search-result-content">
+                    <div className="search-result-title">{result.title}</div>
+                    <div className="search-result-subtitle">{result.subtitle}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="header-right">
@@ -561,7 +720,11 @@ const Header: React.FC<HeaderProps> = () => {
                 <div 
                   key={notification.id} 
                   className={`notification-item ${!notification.read ? 'unread' : ''}`}
-                  style={{ borderLeft: `4px solid ${getPriorityColor(notification.priority)}` }}
+                  onClick={() => handleNotificationClick(notification)}
+                  style={{ 
+                    borderLeft: `4px solid ${getPriorityColor(notification.priority)}`,
+                    cursor: 'pointer'
+                  }}
                 >
                   <div className="notification-header">
                     <span className="notification-type">
@@ -571,7 +734,10 @@ const Header: React.FC<HeaderProps> = () => {
                     <div className="notification-item-actions">
                       {!notification.read && (
                         <button 
-                          onClick={() => handleMarkAsRead(notification.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkAsRead(notification.id);
+                          }}
                           className="mark-read-btn"
                           title="Mark as read"
                         >
@@ -579,7 +745,10 @@ const Header: React.FC<HeaderProps> = () => {
                         </button>
                       )}
                       <button 
-                        onClick={() => handleDeleteNotification(notification.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteNotification(notification.id);
+                        }}
                         className="delete-btn"
                         title="Delete notification"
                       >
@@ -649,12 +818,6 @@ const Header: React.FC<HeaderProps> = () => {
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                 </svg>
                 My Profile
-              </Link>
-              <Link to="/notifications" className="menu-item" onClick={() => setShowUserMenu(false)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-                </svg>
-                Notification Center
               </Link>
             </div>
             

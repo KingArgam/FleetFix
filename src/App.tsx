@@ -1,18 +1,10 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './contexts/AppContext';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
-import Dashboard from './components/pages/Dashboard';
-import EnhancedTrucksPage from './components/pages/EnhancedTrucksPage';
-import MaintenancePage from './components/pages/MaintenancePage';
-import PartsPage from './components/pages/PartsPage';
-import CalendarPage from './components/pages/CalendarPage';
-import LoginPage from './components/pages/LoginPage';
-import SignupPage from './components/pages/SignupPage';
 import { PasswordResetPage } from './components/pages/PasswordResetPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
-// New enterprise features
 import AdminPanel from './components/pages/AdminPanel';
 import BulkVehicleManager from './components/pages/BulkVehicleManager';
 import SupplierManager from './components/pages/SupplierManager';
@@ -23,7 +15,17 @@ import { DowntimeRecordsPage } from './components/pages/DowntimeRecordsPage';
 import { EnhancedCalendarPage } from './components/pages/EnhancedCalendarPage';
 import { RecurringMaintenancePage } from './components/pages/RecurringMaintenancePage';
 import './App.css';
+import './styles/enhanced.css';
 import './styles/enhanced-features.css';
+import './styles/comprehensive-enhanced.css';
+
+// Lazy load components for better performance
+const Dashboard = lazy(() => import('./components/pages/Dashboard'));
+const EnhancedTrucksPage = lazy(() => import('./components/pages/EnhancedTrucksPage'));
+const MaintenancePage = lazy(() => import('./components/pages/MaintenancePage'));
+const PartsPage = lazy(() => import('./components/pages/PartsPage'));
+const LoginPage = lazy(() => import('./components/pages/LoginPage'));
+const SignupPage = lazy(() => import('./components/pages/SignupPage'));
 
 const App: React.FC = () => {
   return (
@@ -77,7 +79,7 @@ const AppContent: React.FC = () => {
               element={<PartsPage />} 
             />
             <Route 
-              path="/analytics" 
+              path="/analytics-dashboard" 
               element={<AnalyticsDashboard />} 
             />
             <Route 

@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Part, ValidationError, PartCategory } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
-import { userDataService } from '../../services/UserDataService';
 import '../../styles/enhanced.css';
 
 interface PartFormProps {
@@ -11,20 +10,34 @@ interface PartFormProps {
 }
 
 export const PartForm: React.FC<PartFormProps> = ({ part, onSuccess, onCancel }) => {
-  const { state } = useAppContext();
+  const { state, addPart, updatePart } = useAppContext();
+  const [suppliers, setSuppliers] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: part?.name || '',
     partNumber: part?.partNumber || '',
     category: part?.category || 'Other' as PartCategory,
     cost: part?.cost || 0,
     supplier: part?.supplier || '',
-    quantity: part?.inventoryLevel || 0,
-    minQuantity: part?.minStockLevel || 0,
+    inventoryLevel: part?.inventoryLevel || 0,
+    minStockLevel: part?.minStockLevel || 0,
     location: part?.location || ''
   });
 
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load demo suppliers on component mount
+  useEffect(() => {
+    // Set some demo suppliers
+    setSuppliers([
+      'AutoZone',
+      'NAPA Auto Parts', 
+      'O\'Reilly Auto Parts',
+      'Advance Auto Parts',
+      'CarQuest',
+      'Fleet Supply Co.'
+    ]);
+  }, []);
 
   const partCategories: PartCategory[] = [
     'Engine',
@@ -48,7 +61,7 @@ export const PartForm: React.FC<PartFormProps> = ({ part, onSuccess, onCancel })
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'cost' || name === 'quantity' || name === 'minQuantity' 
+      [name]: name === 'cost' || name === 'inventoryLevel' || name === 'minStockLevel' 
         ? parseFloat(value) || 0 
         : value
     }));
@@ -65,12 +78,7 @@ export const PartForm: React.FC<PartFormProps> = ({ part, onSuccess, onCancel })
     setErrors([]);
 
     try {
-      if (part) {
-        await userDataService.updatePart(part.id, formData);
-      } else {
-        await userDataService.createPart(state.currentUser.id, formData);
-      }
-      // Create a Part object for the callback
+      // Create a Part object 
       const newPart: Part = {
         id: part?.id || Date.now().toString(),
         name: formData.name,
@@ -78,12 +86,19 @@ export const PartForm: React.FC<PartFormProps> = ({ part, onSuccess, onCancel })
         category: formData.category,
         cost: formData.cost,
         supplier: formData.supplier,
-        inventoryLevel: formData.quantity,
-        minStockLevel: formData.minQuantity,
+        inventoryLevel: formData.inventoryLevel,
+        minStockLevel: formData.minStockLevel,
         location: formData.location,
         createdAt: new Date(),
-        createdBy: state.currentUser.id
+        createdBy: state.currentUser?.id || 'unknown'
       };
+      
+      if (part) {
+        await updatePart(part.id, newPart);
+      } else {
+        await addPart(newPart);
+      }
+      
       onSuccess(newPart);
     } catch (error) {
       console.error('Error submitting part form:', error);
@@ -174,44 +189,58 @@ export const PartForm: React.FC<PartFormProps> = ({ part, onSuccess, onCancel })
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="supplier">Supplier</label>
-              <input
-                type="text"
+              <select
                 id="supplier"
                 name="supplier"
                 value={formData.supplier}
                 onChange={handleInputChange}
-                placeholder="Supplier name"
-              />
+              >
+                <option value="">Select a supplier...</option>
+                {suppliers.map((supplier, index) => (
+                  <option key={index} value={supplier}>
+                    {supplier}
+                  </option>
+                ))}
+                <option value="other">Other (Custom)</option>
+              </select>
+              {formData.supplier === 'other' && (
+                <input
+                  type="text"
+                  placeholder="Enter custom supplier name"
+                  onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
+                  style={{ marginTop: '8px' }}
+                />
+              )}
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="quantity">Current Inventory</label>
+              <label htmlFor="inventoryLevel">Current Inventory</label>
               <input
                 type="number"
-                id="quantity"
-                name="quantity"
-                value={formData.quantity}
+                id="inventoryLevel"
+                name="inventoryLevel"
+                value={formData.inventoryLevel}
                 onChange={handleInputChange}
                 min="0"
-                className={getFieldError('quantity') ? 'error' : ''}
+                className={getFieldError('inventoryLevel') ? 'error' : ''}
               />
-              {getFieldError('quantity') && <span className="error-message">{getFieldError('quantity')}</span>}
+              {getFieldError('inventoryLevel') && <span className="error-message">{getFieldError('inventoryLevel')}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="minQuantity">Minimum Stock Level</label>
+              <label htmlFor="minStockLevel">Minimum Stock Level</label>
               <input
                 type="number"
-                id="minQuantity"
-                name="minQuantity"
-                value={formData.minQuantity}
+                id="minStockLevel"
+                name="minStockLevel"
+                value={formData.minStockLevel}
                 onChange={handleInputChange}
                 min="0"
-                className={getFieldError('minQuantity') ? 'error' : ''}
+                className={getFieldError('minStockLevel') ? 'error' : ''}
               />
-              {getFieldError('minQuantity') && <span className="error-message">{getFieldError('minQuantity')}</span>}
+              {getFieldError('minStockLevel') && <span className="error-message">{getFieldError('minStockLevel')}</span>}
             </div>
           </div>
 
