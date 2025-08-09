@@ -31,54 +31,8 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
     generateInviteCodes();
   }, []);
 
-  const generateInviteCodes = () => {
-    // Generate unique codes for fleet managers and workers
-    const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
-    
-    setFleetManagerCode(`FM-${generateCode()}`);
-    setWorkerCode(`WK-${generateCode()}`);
-    
-    // Set expiry to 30 days from now
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 30);
-    setCodeExpiry(expiryDate);
-  };
-
-  useEffect(() => {
-    loadUsers();
-    loadCompanies();
-  }, []);
-
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      // In a real implementation, you'd have an admin endpoint to get all users
-      // For now, we'll simulate it
-      const mockUsers: UserProfile[] = [
-        {
-          id: '1',
-          uid: 'user1',
-          email: 'john@example.com',
-          displayName: 'John Doe',
-          role: 'admin',
-          isEmailVerified: true,
-          lastLogin: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          uid: 'user2',
-          email: 'jane@example.com',
-          displayName: 'Jane Smith',
-          role: 'editor',
-          isEmailVerified: true,
-          lastLogin: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      setUsers(mockUsers);
+const loadUsers = async () => {
+  setUsers([]);
     } catch (error) {
       console.error('Error loading users:', error);
     } finally {
@@ -87,22 +41,7 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
   };
 
   const loadCompanies = async () => {
-    try {
-      // Mock companies data
-      const mockCompanies: CompanyData[] = [
-        {
-          id: 'company1',
-          name: 'FleetFix Inc.',
-          email: 'admin@fleetfix.com',
-          ownerId: 'user1',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      setCompanies(mockCompanies);
-    } catch (error) {
-      console.error('Error loading companies:', error);
-    }
+  setCompanies([]);
   };
 
   const handleEditUser = (user: UserProfile) => {

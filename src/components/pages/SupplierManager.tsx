@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Phone, Mail, MapPin, Package, TrendingUp, AlertTriangle } from 'lucide-react';
 import userDataService, { SupplierData, PurchaseOrder } from '../../services/UserDataService';
 import { useAppContext } from '../../contexts/AppContext';
-import { mockSuppliers } from '../../utils/enhancedMockData';
 
 interface SupplierManagerProps {}
 
@@ -10,7 +9,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const { state } = useAppContext();
   const { currentUser } = state;
   
-  const [suppliers, setSuppliers] = useState<SupplierData[]>(mockSuppliers as SupplierData[]);
+  const [suppliers, setSuppliers] = useState<SupplierData[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState<SupplierData | null>(null);
@@ -47,21 +46,19 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
 
   useEffect(() => {
-    // Load mock data immediately for fast loading
-    setSuppliers(mockSuppliers as SupplierData[]);
-    loadPurchaseOrders();
+  loadSuppliers();
+  loadPurchaseOrders();
   }, []);
 
   const loadSuppliers = async () => {
     if (!currentUser) return;
     setLoading(true);
     try {
-      // Use mock data immediately for fast loading
-      setSuppliers(mockSuppliers as SupplierData[]);
+      const userSuppliers = await userDataService.getSuppliers(currentUser.id);
+      setSuppliers(userSuppliers || []);
     } catch (error) {
       console.error('Error loading suppliers:', error);
-      // Fallback to mock data on error
-      setSuppliers(mockSuppliers as SupplierData[]);
+      setSuppliers([]);
     } finally {
       setLoading(false);
     }
@@ -106,34 +103,23 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       }
 
       if (selectedSupplier) {
-        // Update existing supplier in local state
-        const updatedSupplier = {
-          ...selectedSupplier,
+        // Update existing supplier in backend
+        await userDataService.updateSupplier(selectedSupplier.id, {
           ...supplierForm,
           updatedAt: new Date()
-        };
-        
-        setSuppliers(prev => prev.map(supplier => 
-          supplier.id === selectedSupplier.id ? updatedSupplier : supplier
-        ));
+        });
+        loadSuppliers();
       } else {
-        // Add new supplier to local state
-        const newSupplier: SupplierData = {
-          id: Date.now().toString(),
-          ...supplierForm,
-          name: supplierForm.name,
-          defaultLeadTimeDays: supplierForm.defaultLeadTimeDays || 7,
-          totalOrders: 0,
-          totalSpent: 0,
-          averageRating: 0,
-          lastOrderDate: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: currentUser.id
-        } as SupplierData;
-
-        setSuppliers(prev => [newSupplier, ...prev]);
-        console.log('New supplier added:', newSupplier.name);
+        // Add new supplier to backend
+        await userDataService.createSupplier(
+          currentUser.id,
+          {
+            ...supplierForm,
+            name: supplierForm.name!,
+            defaultLeadTimeDays: supplierForm.defaultLeadTimeDays || 7
+          }
+        );
+        loadSuppliers();
       }
 
       resetSupplierForm();
@@ -150,9 +136,9 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     if (window.confirm('Are you sure you want to delete this supplier? This action cannot be undone.')) {
       setLoading(true);
       try {
-        // Remove supplier from local state
-        setSuppliers(prev => prev.filter(supplier => supplier.id !== supplierId));
-        
+        // Remove supplier from backend
+        await userDataService.deleteSupplier(supplierId);
+        loadSuppliers();
         // If we're deleting the currently selected supplier, clear selection
         if (selectedSupplier?.id === supplierId) {
           setSelectedSupplier(null);

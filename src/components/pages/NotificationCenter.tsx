@@ -49,14 +49,11 @@ const NotificationCenter: React.FC<NotificationCenterProps> = () => {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const { mockNotifications } = await import('../../utils/enhancedMockData');
-      const notificationsWithUser = mockNotifications.map(notif => ({
-        ...notif,
-        userId: currentUser.id
-      }));
-      setNotifications(notificationsWithUser);
+      const userNotifications = await userDataService.getNotifications(currentUser.id);
+      setNotifications(userNotifications || []);
     } catch (error) {
       console.error('Error loading notifications:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -133,14 +130,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = () => {
     }
   };
 
-  const sendTestNotification = () => {
-    if (settings.browserNotifications && 'Notification' in window) {
-      new Notification('Test Notification', {
-        body: 'This is a test notification from your fleet management system.',
-        icon: '/favicon.ico'
-      });
-    }
-  };
 
   const generateMaintenanceReminders = async () => {
     setLoading(true);

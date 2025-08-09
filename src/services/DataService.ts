@@ -7,14 +7,7 @@ import {
   ValidationError, 
   TruckStatus
 } from '../types';
-import { 
-  mockTrucks, 
-  mockMaintenanceEntries, 
-  mockParts, 
-  mockDowntimeEvents,
-  mockAuditLogs,
-  mockUsers 
-} from '../utils/enhancedMockData';
+// All mock data removed. DataService now only manages real user data.
 
 // Enhanced Data Service with CRUD Operations and LocalStorage Persistence
 export class DataService {
@@ -23,9 +16,10 @@ export class DataService {
   private maintenanceEntries: MaintenanceEntry[] = [];
   private parts: Part[] = [];
   private downtimeEvents: DowntimeEvent[] = [];
-  private currentUser = mockUsers[0]; // Default to admin user
+  private currentUserId: string | null = null;
 
   private constructor() {
+    // No mock data, only load user-specific data if logged in
     this.loadFromStorage();
   }
 
@@ -39,31 +33,33 @@ export class DataService {
   // Load data from localStorage or use mock data as fallback
   private loadFromStorage(): void {
     try {
-      const storedTrucks = localStorage.getItem('fleetfix_trucks');
-      const storedMaintenance = localStorage.getItem('fleetfix_maintenance');
-      const storedParts = localStorage.getItem('fleetfix_parts');
-      const storedDowntime = localStorage.getItem('fleetfix_downtime');
+      if (!this.currentUserId) return;
+      const storedTrucks = localStorage.getItem(`fleetfix_trucks_${this.currentUserId}`);
+      const storedMaintenance = localStorage.getItem(`fleetfix_maintenance_${this.currentUserId}`);
+      const storedParts = localStorage.getItem(`fleetfix_parts_${this.currentUserId}`);
+      const storedDowntime = localStorage.getItem(`fleetfix_downtime_${this.currentUserId}`);
 
-      this.trucks = storedTrucks ? JSON.parse(storedTrucks) : [...mockTrucks];
-      this.maintenanceEntries = storedMaintenance ? JSON.parse(storedMaintenance) : [...mockMaintenanceEntries];
-      this.parts = storedParts ? JSON.parse(storedParts) : [...mockParts];
-      this.downtimeEvents = storedDowntime ? JSON.parse(storedDowntime) : [...mockDowntimeEvents];
+      this.trucks = storedTrucks ? JSON.parse(storedTrucks) : [];
+      this.maintenanceEntries = storedMaintenance ? JSON.parse(storedMaintenance) : [];
+      this.parts = storedParts ? JSON.parse(storedParts) : [];
+      this.downtimeEvents = storedDowntime ? JSON.parse(storedDowntime) : [];
     } catch (error) {
-      console.error('Error loading from storage, using mock data:', error);
-      this.trucks = [...mockTrucks];
-      this.maintenanceEntries = [...mockMaintenanceEntries];
-      this.parts = [...mockParts];
-      this.downtimeEvents = [...mockDowntimeEvents];
+      console.error('Error loading from storage:', error);
+      this.trucks = [];
+      this.maintenanceEntries = [];
+      this.parts = [];
+      this.downtimeEvents = [];
     }
   }
 
   // Save data to localStorage
   private saveToStorage(): void {
     try {
-      localStorage.setItem('fleetfix_trucks', JSON.stringify(this.trucks));
-      localStorage.setItem('fleetfix_maintenance', JSON.stringify(this.maintenanceEntries));
-      localStorage.setItem('fleetfix_parts', JSON.stringify(this.parts));
-      localStorage.setItem('fleetfix_downtime', JSON.stringify(this.downtimeEvents));
+      if (!this.currentUserId) return;
+      localStorage.setItem(`fleetfix_trucks_${this.currentUserId}`, JSON.stringify(this.trucks));
+      localStorage.setItem(`fleetfix_maintenance_${this.currentUserId}`, JSON.stringify(this.maintenanceEntries));
+      localStorage.setItem(`fleetfix_parts_${this.currentUserId}`, JSON.stringify(this.parts));
+      localStorage.setItem(`fleetfix_downtime_${this.currentUserId}`, JSON.stringify(this.downtimeEvents));
     } catch (error) {
       console.error('Error saving to storage:', error);
     }
@@ -179,19 +175,25 @@ export class DataService {
   }
 
   private logAuditEntry(action: 'create' | 'update' | 'delete', entityType: string, entityId: string, changes?: any) {
+    // In production, send audit logs to a backend or logging service
+    // For now, just log to console for debugging
     const auditEntry = {
       id: `audit-${Date.now()}`,
       action,
-      entityType: entityType as any,
+      entityType,
       entityId,
-      userId: this.currentUser.id,
-      userName: this.currentUser.name,
+      userId: this.currentUserId,
       changes,
       timestamp: new Date(),
       userAgent: navigator.userAgent,
-      ipAddress: '192.168.1.100' // Mock IP
     };
-    mockAuditLogs.push(auditEntry);
+    console.log('AUDIT LOG:', auditEntry);
+  }
+
+  // Set current user for all operations
+  setCurrentUser(userId: string) {
+    this.currentUserId = userId;
+    this.loadFromStorage();
   }
 
   // Truck CRUD Operations
@@ -206,8 +208,8 @@ export class DataService {
       id: `truck-${Date.now()}`,
       createdAt: new Date(),
       updatedAt: new Date(),
-      createdBy: this.currentUser.id,
-      updatedBy: this.currentUser.id
+      createdBy: this.currentUserId!,
+      updatedBy: this.currentUserId!
     };
 
     this.trucks.push(newTruck);
@@ -243,7 +245,7 @@ export class DataService {
     });
 
     updatedTruck.updatedAt = new Date();
-    updatedTruck.updatedBy = this.currentUser.id;
+  updatedTruck.updatedBy = this.currentUserId!;
 
     this.trucks[truckIndex] = updatedTruck;
     this.logAuditEntry('update', 'truck', id, changes);
@@ -298,7 +300,7 @@ export class DataService {
       ...entryData,
       id: `maint-${Date.now()}`,
       createdAt: new Date(),
-      createdBy: this.currentUser.id
+  createdBy: this.currentUserId!
     };
 
     this.maintenanceEntries.push(newEntry);
@@ -334,7 +336,7 @@ export class DataService {
     });
 
     updatedEntry.updatedAt = new Date();
-    updatedEntry.updatedBy = this.currentUser.id;
+  updatedEntry.updatedBy = this.currentUserId!;
 
     this.maintenanceEntries[entryIndex] = updatedEntry;
     this.logAuditEntry('update', 'maintenance', id, changes);
@@ -373,7 +375,7 @@ export class DataService {
       ...partData,
       id: `part-${Date.now()}`,
       createdAt: new Date(),
-      createdBy: this.currentUser.id
+  createdBy: this.currentUserId!
     };
 
     this.parts.push(newPart);
@@ -409,7 +411,7 @@ export class DataService {
     });
 
     updatedPart.updatedAt = new Date();
-    updatedPart.updatedBy = this.currentUser.id;
+  updatedPart.updatedBy = this.currentUserId!;
 
     this.parts[partIndex] = updatedPart;
     this.logAuditEntry('update', 'part', id, changes);
@@ -517,8 +519,12 @@ export class DataService {
 }
 
 // React Hook for Data Service
-export function useDataService() {
-  const [dataService] = useState(() => DataService.getInstance());
+export function useDataService(userId: string) {
+  const [dataService] = useState(() => {
+    const ds = DataService.getInstance();
+    ds.setCurrentUser(userId);
+    return ds;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
