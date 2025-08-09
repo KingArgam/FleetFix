@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, startTransition } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { notificationService, type Notification } from '../../services/NotificationService';
 import authService from '../../services/AuthService';
 import { useAppContext } from '../../contexts/AppContext';
@@ -617,27 +617,27 @@ const Header: React.FC<HeaderProps> = () => {
       </div>
       
       <div className="header-center">
-        <div className="search-container">
-          <form onSubmit={handleSearchSubmit} className="search-bar">
+        <div className="search-container" style={{ minWidth: 420, maxWidth: 600, marginLeft: 0 }}>
+          <form onSubmit={handleSearchSubmit} className="search-bar" style={{ width: '100%', minWidth: 380, maxWidth: 600, marginLeft: 0 }}>
             <span className="search-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
               </svg>
             </span>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={searchQuery}
               onChange={handleSearchChange}
               placeholder="Search trucks, maintenance, parts..."
               className="search-input"
+              style={{ fontSize: '1.1rem', width: '100%', minWidth: 320, maxWidth: 540, paddingLeft: 48, overflow: 'hidden', textOverflow: 'ellipsis' }}
               autoComplete="off"
             />
           </form>
-          
           {showSearchResults && searchResults.length > 0 && (
-            <div className="search-results">
+            <div className="search-results" style={{ left: 0, width: '100%', maxWidth: 540 }}>
               {searchResults.map((result, index) => (
-                <div 
+                <div
                   key={`${result.type}-${result.id}-${index}`}
                   className="search-result-item"
                   onClick={() => handleSearchResultClick(result)}
@@ -648,8 +648,8 @@ const Header: React.FC<HeaderProps> = () => {
                     {result.type === 'part' && '⚙️'}
                   </div>
                   <div className="search-result-content">
-                    <div className="search-result-title">{result.title}</div>
-                    <div className="search-result-subtitle">{result.subtitle}</div>
+                    <div className="search-result-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 320 }}>{result.title}</div>
+                    <div className="search-result-subtitle" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 320 }}>{result.subtitle}</div>
                   </div>
                 </div>
               ))}
@@ -813,41 +813,71 @@ const Header: React.FC<HeaderProps> = () => {
           </div>
           <div className="dropdown-content">
             <div className="menu-section">
-              <Link to="/profile" className="menu-item" onClick={() => setShowUserMenu(false)}>
+              <button 
+                className="menu-item" 
+                onClick={() => {
+                  setShowUserMenu(false);
+                  startTransition(() => navigate('/profile'));
+                }}
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                 </svg>
                 My Profile
-              </Link>
+              </button>
             </div>
             
             {state.currentUser?.role === 'admin' && (
               <div className="menu-section">
                 <div className="section-title">Administration</div>
-                <Link to="/admin" className="menu-item" onClick={() => setShowUserMenu(false)}>
+                <button 
+                  className="menu-item" 
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    startTransition(() => navigate('/admin'));
+                  }}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
                   </svg>
                   Admin Panel
-                </Link>
-                <Link to="/bulk-manager" className="menu-item" onClick={() => setShowUserMenu(false)}>
+                </button>
+                <button 
+                  className="menu-item" 
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    startTransition(() => navigate('/bulk-manager'));
+                  }}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
                   </svg>
                   Bulk Vehicle Manager
-                </Link>
-                <Link to="/suppliers" className="menu-item" onClick={() => setShowUserMenu(false)}>
+                </button>
+                <button 
+                  className="menu-item" 
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    startTransition(() => navigate('/suppliers'));
+                  }}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12,2A3,3 0 0,1 15,5V7H19A1,1 0 0,1 20,8V20A1,1 0 0,1 19,21H5A1,1 0 0,1 4,20V8A1,1 0 0,1 5,7H9V5A3,3 0 0,1 12,2M12,4A1,1 0 0,0 11,5V7H13V5A1,1 0 0,0 12,4Z"/>
                   </svg>
                   Supplier Management
-                </Link>
-                <Link to="/analytics-dashboard" className="menu-item" onClick={() => setShowUserMenu(false)}>
+                </button>
+                <button 
+                  className="menu-item" 
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    startTransition(() => navigate('/analytics-dashboard'));
+                  }}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M22,21H2V3H4V19H6V17H10V19H12V16H16V19H18V17H22V21Z"/>
                   </svg>
                   Analytics Dashboard
-                </Link>
+                </button>
               </div>
             )}
             

@@ -6,40 +6,73 @@ import { notificationService } from '../../services/NotificationService';
 import '../../styles/enhanced.css';
 
 const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
-  const { state } = useAppContext();
-  const { currentUser } = state;
+  const { state, addPart, updatePart, deletePart } = useAppContext();
+  const { currentUser, parts: stateParts } = state;
   const [showPartForm, setShowPartForm] = useState(false);
-  const [parts, setParts] = useState<PartData[]>(propParts || []);
-  const [loading, setLoading] = useState(false);
+  const [editingPart, setEditingPart] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState(5);
 
-  useEffect(() => {
-    if (currentUser) {
-      loadParts();
-    }
-  }, [currentUser]);
+  // Convert parts to PartData format for display - avoid duplicates by preferring stateParts
+  const sourceParts = stateParts && stateParts.length > 0 ? stateParts : (propParts || []);
+  
+  // Debug logging
+  console.log('Source data - stateParts length:', stateParts?.length || 0, 'propParts length:', propParts?.length || 0);
+  console.log('Using stateParts:', stateParts && stateParts.length > 0);
+  
+  // Remove duplicates based on ID
+  const uniqueParts = sourceParts.filter((part: any, index: number, array: any[]) => 
+    array.findIndex((p: any) => p.id === part.id) === index
+  );
+  
+  console.log('Original parts count:', sourceParts.length, 'Unique parts count:', uniqueParts.length);
+  
+  const parts: PartData[] = uniqueParts.map((part: any) => {
+    const converted = {
+      id: part.id,
+      name: part.name,
+      partNumber: part.partNumber || '',
+      category: part.category || 'General',
+      cost: part.cost || 0,
+      quantity: part.inventoryLevel || part.quantity || 0,
+      minQuantity: part.minStockLevel || part.minQuantity || 5,
+      supplier: part.supplier || '',
+      location: part.location || '',
+      description: part.description || '',
+      userId: currentUser?.id || '',
+      createdAt: part.createdAt || new Date(),
+      updatedAt: part.updatedAt || new Date(),
+    };
+    
+    return converted;
+  });
+
+  // Regenerate categories whenever parts change
+  const categories = React.useMemo(() => {
+    const cats = Array.from(new Set(parts.map(part => part.category).filter(Boolean)));
+    console.log('Categories updated:', cats, 'from', parts.length, 'parts');
+    return cats;
+  }, [parts]);
 
   useEffect(() => {
     // Check for low stock alerts on load and when parts change
     checkLowStockAlerts(parts);
-  }, [parts, alertThreshold]);
+  }, [stateParts, alertThreshold]);
 
-  const loadParts = async () => {
-    if (!currentUser) return;
-    
-    try {
-      setLoading(true);
-      const partsData = await userDataService.getParts(currentUser.id);
-      setParts(partsData);
-    } catch (error) {
-      console.error('Error loading parts:', error);
-    } finally {
-      setLoading(false);
+  // Reset filter if selected category no longer exists
+  useEffect(() => {
+    if (filterCategory !== 'all' && !categories.includes(filterCategory)) {
+      console.log(`Resetting filter category "${filterCategory}" to "all" because it's not in categories:`, categories);
+      setFilterCategory('all');
     }
-  };
+  }, [categories, filterCategory]);
+
+  // Debug log when filter category changes
+  useEffect(() => {
+    console.log('Filter category changed to:', filterCategory);
+  }, [filterCategory]);
 
   const checkLowStockAlerts = (partsData: PartData[]) => {
     partsData.forEach(part => {
@@ -61,13 +94,88 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
   };
 
   const handleAddPartClick = () => {
+    setEditingPart(null); // Ensure we're in add mode
     setShowPartForm(true);
   };
 
-  const handlePartSaved = (part: any) => {
-    onAddPart?.(part);
+  const handlePartSaved = async (part: any) => {
+    console.log('New part saved:', part);
+    console.log('Current parts before adding:', parts.length);
+    console.log('Current categories before adding:', categories);
+    
+    if (editingPart) {
+      // Update existing part
+      await updatePart(editingPart.id, part);
+      setEditingPart(null);
+    } else {
+      // Add new part
+      await addPart(part);
+    }
+    
     setShowPartForm(false);
-    loadParts(); // Reload to get updated data
+    console.log('Part added/updated in context');
+  };
+
+  const handleEditPart = (part: PartData) => {
+    // Convert PartData back to Part format for editing
+    const partForEdit = {
+      id: part.id,
+      name: part.name,
+      partNumber: part.partNumber,
+      category: part.category,
+      cost: part.cost,
+      supplier: part.supplier,
+      inventoryLevel: part.quantity,
+      minStockLevel: part.minQuantity,
+      location: part.location,
+      description: part.description,
+      createdAt: part.createdAt,
+      createdBy: part.userId
+    };
+    
+    setEditingPart(partForEdit);
+    setShowPartForm(true);
+  };
+
+  const handleDeletePart = async (partId: string) => {
+    if (window.confirm('Are you sure you want to delete this part? This action cannot be undone.')) {
+      try {
+        await deletePart(partId);
+        console.log('Part deleted:', partId);
+      } catch (error) {
+        console.error('Error deleting part:', error);
+        alert('Failed to delete part. Please try again.');
+      }
+    }
+  };
+
+  const handleOrderPart = (part: PartData) => {
+    // Show detailed order information
+    const orderDetails = `
+ORDER DETAILS:
+${'-'.repeat(30)}
+Part: ${part.name}
+Part Number: ${part.partNumber}
+Category: ${part.category}
+Current Stock: ${part.quantity}
+Minimum Stock: ${part.minQuantity}
+Suggested Order: ${Math.max(part.minQuantity * 2 - part.quantity, 1)} units
+Cost per Unit: $${part.cost.toFixed(2)}
+Supplier: ${part.supplier || 'N/A'}
+${'-'.repeat(30)}
+
+This would normally integrate with your supplier ordering system to place an actual order.
+    `;
+    
+    alert(orderDetails);
+    
+    // In a real application, you might:
+    // - Open an order form modal
+    // - Send order to supplier API
+    // - Create purchase order record
+    // - Update expected delivery dates
+    // - Send notifications to relevant personnel
+    // - Update inventory forecasts
   };
 
   const getPartStatus = (part: PartData) => {
@@ -93,10 +201,16 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
     
     const matchesStockFilter = !showLowStockOnly || part.quantity <= part.minQuantity;
     
-    return matchesSearch && matchesCategory && matchesStockFilter;
+    const matches = matchesSearch && matchesCategory && matchesStockFilter;
+    
+    // Debug logging when filtering by category
+    if (filterCategory !== 'all') {
+      console.log(`Part "${part.name}" category: "${part.category}", filter: "${filterCategory}", matches: ${matchesCategory}`);
+    }
+    
+    return matches;
   });
 
-  const categories = Array.from(new Set(parts.map(part => part.category)));
   const lowStockCount = getLowStockCount();
   const outOfStockCount = getOutOfStockCount();
 
@@ -159,6 +273,7 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
         <div className="filter-group">
           <label>Category:</label>
           <select
+            key={categories.join(',')} // Force re-render when categories change
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
           >
@@ -194,15 +309,9 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading parts...</p>
-        </div>
-      ) : (
-        <div className="parts-grid">
-          {filteredParts.length === 0 ? (
-            <div className="empty-state">
+      <div className="parts-grid">
+        {filteredParts.length === 0 ? (
+          <div className="empty-state">
               <h3>No parts found</h3>
               <p>
                 {searchTerm || filterCategory !== 'all' || showLowStockOnly
@@ -292,14 +401,27 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
                   </div>
 
                   <div className="part-actions">
-                    <button className="btn-secondary btn-sm">
+                    <button 
+                      className="btn-secondary btn-sm"
+                      onClick={() => handleEditPart(part)}
+                      title="Edit part details"
+                    >
                       ✏️ Edit
                     </button>
                     <button 
                       className="btn-primary btn-sm"
+                      onClick={() => handleOrderPart(part)}
                       disabled={part.quantity === 0}
+                      title={part.quantity === 0 ? "Cannot order - out of stock" : "Place order for this part"}
                     >
                       📦 Order
+                    </button>
+                    <button 
+                      className="btn-danger btn-sm"
+                      onClick={() => handleDeletePart(part.id)}
+                      title="Delete this part"
+                    >
+                      🗑️ Delete
                     </button>
                   </div>
                 </div>
@@ -307,7 +429,6 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
             })
           )}
         </div>
-      )}
 
       {/* Parts Statistics */}
       <div className="page-stats">
@@ -339,22 +460,32 @@ const PartsPage: React.FC<any> = ({ parts: propParts, onAddPart }) => {
         </div>
       </div>
 
-      {/* Add Part Modal */}
+      {/* Add/Edit Part Modal */}
       {showPartForm && (
-        <div className="modal-overlay" onClick={() => setShowPartForm(false)}>
+        <div className="modal-overlay" onClick={() => {
+          setShowPartForm(false);
+          setEditingPart(null);
+        }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>➕ Add New Part</h2>
+              <h2>{editingPart ? '✏️ Edit Part' : '➕ Add New Part'}</h2>
               <button 
                 className="modal-close"
-                onClick={() => setShowPartForm(false)}
+                onClick={() => {
+                  setShowPartForm(false);
+                  setEditingPart(null);
+                }}
               >
                 ❌
               </button>
             </div>
             <PartForm
+              part={editingPart}
               onSuccess={handlePartSaved}
-              onCancel={() => setShowPartForm(false)}
+              onCancel={() => {
+                setShowPartForm(false);
+                setEditingPart(null);
+              }}
             />
           </div>
         </div>

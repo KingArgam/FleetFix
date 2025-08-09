@@ -3,7 +3,7 @@ import { useAppContext } from '../../contexts/AppContext';
 
 const Dashboard: React.FC = () => {
   const { state } = useAppContext();
-  const { trucks, maintenance, loading } = state;
+  const { trucks, maintenance, loading, currentUser } = state;
 
   // Memoize calculations to prevent re-computation on every render
   const dashboardStats = useMemo(() => {
@@ -15,14 +15,20 @@ const Dashboard: React.FC = () => {
       totalTrucks: 0
     };
 
+    // Filter maintenance to only include records after account creation
+    const accountCreationDate = currentUser?.createdAt ? new Date(currentUser.createdAt) : new Date();
+    const filteredMaintenance = maintenance.filter(record => 
+      new Date(record.date) >= accountCreationDate
+    );
+
     return {
       activeTrucks: trucks.filter((t) => t.status === 'In Service').length,
       trucksInMaintenance: trucks.filter((t) => t.status === 'Out for Repair' || t.status === 'Needs Attention').length,
       retiredTrucks: trucks.filter((t) => t.status === 'Retired').length,
-      pendingMaintenance: maintenance.filter((m) => m.status === 'scheduled').length,
+      pendingMaintenance: filteredMaintenance.filter((m) => m.status === 'scheduled').length,
       totalTrucks: trucks.length
     };
-  }, [trucks, maintenance]);
+  }, [trucks, maintenance, currentUser]);
 
   if (loading) {
     return (
@@ -76,17 +82,32 @@ const Dashboard: React.FC = () => {
             <h3 className="card-title">Recent Maintenance</h3>
           </div>
           <div className="card-body">
-            {maintenance?.slice(0, 5).map((entry) => (
-              <div key={entry.id} className="maintenance-item">
-                <div className="flex justify-between">
-                  <span>{entry.type}</span>
-                  <span>{entry.cost ? `$${entry.cost}` : 'No cost'}</span>
+            {(() => {
+              const accountCreationDate = currentUser?.createdAt ? new Date(currentUser.createdAt) : new Date();
+              const filteredMaintenance = maintenance?.filter(record => 
+                new Date(record.date) >= accountCreationDate
+              ) || [];
+              
+              return filteredMaintenance.slice(0, 5).map((entry) => (
+                <div key={entry.id} className="maintenance-item">
+                  <div className="flex justify-between">
+                    <span>{entry.type}</span>
+                    <span>{entry.cost ? `$${entry.cost}` : 'No cost'}</span>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {new Date(entry.date).toLocaleDateString()}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500">
-                  {new Date(entry.date).toLocaleDateString()}
-                </div>
-              </div>
-            )) || <p>No maintenance entries found</p>}
+              ));
+            })()}
+            {(() => {
+              const accountCreationDate = currentUser?.createdAt ? new Date(currentUser.createdAt) : new Date();
+              const filteredMaintenance = maintenance?.filter(record => 
+                new Date(record.date) >= accountCreationDate
+              ) || [];
+              
+              return filteredMaintenance.length === 0 ? <p>No maintenance entries found</p> : null;
+            })()}
           </div>
         </div>
 

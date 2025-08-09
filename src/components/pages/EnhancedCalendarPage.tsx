@@ -392,9 +392,12 @@ export const EnhancedCalendarPage: React.FC = () => {
     try {
       setLoading(true);
       const [trucksData, eventsData, maintenanceData] = await Promise.all([
-        userDataService.getTrucks(state.currentUser?.id || ''),
+        Promise.resolve((state.trucks || []).map(truck => ({
+          ...truck,
+          userId: state.currentUser?.id || ''
+        }))),
         loadCalendarEvents(),
-        userDataService.getMaintenance(state.currentUser?.id || '')
+        Promise.resolve(state.maintenance || [])
       ]);
       
       setTrucks(trucksData || []);

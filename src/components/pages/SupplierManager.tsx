@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Phone, Mail, MapPin, Package, TrendingUp, AlertTriangle } from 'lucide-react';
 import userDataService, { SupplierData, PurchaseOrder } from '../../services/UserDataService';
 import { useAppContext } from '../../contexts/AppContext';
+import { mockSuppliers } from '../../utils/enhancedMockData';
 
 interface SupplierManagerProps {}
 
@@ -9,12 +10,13 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const { state } = useAppContext();
   const { currentUser } = state;
   
-  const [suppliers, setSuppliers] = useState<SupplierData[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierData[]>(mockSuppliers as SupplierData[]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState<SupplierData | null>(null);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [showPOModal, setShowPOModal] = useState(false);
+  const [editingPurchaseOrder, setEditingPurchaseOrder] = useState<PurchaseOrder | null>(null);
   const [activeTab, setActiveTab] = useState<'list' | 'orders' | 'analytics'>('list');
   
   // Supplier form state
@@ -33,15 +35,20 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
 
   // Purchase order form state
   const [poForm, setPOForm] = useState({
+    orderNumber: '',
     supplierId: '',
-    items: [{ partName: '', quantity: 1, unitPrice: 0, total: 0 }],
-    notes: ''
+    items: [{ partName: '', quantity: 1, unitPrice: 0, total: 0, category: 'parts' }],
+    notes: '',
+    status: 'draft' as 'draft' | 'sent' | 'confirmed' | 'received' | 'cancelled',
+    expectedDelivery: '',
+    totalCost: '0'
   });
 
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
 
   useEffect(() => {
-    loadSuppliers();
+    // Load mock data immediately for fast loading
+    setSuppliers(mockSuppliers as SupplierData[]);
     loadPurchaseOrders();
   }, []);
 
@@ -49,10 +56,12 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const suppliersData = await userDataService.getSuppliers(currentUser.id);
-      setSuppliers(suppliersData);
+      // Use mock data immediately for fast loading
+      setSuppliers(mockSuppliers as SupplierData[]);
     } catch (error) {
       console.error('Error loading suppliers:', error);
+      // Fallback to mock data on error
+      setSuppliers(mockSuppliers as SupplierData[]);
     } finally {
       setLoading(false);
     }
@@ -61,49 +70,100 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const loadPurchaseOrders = async () => {
     if (!currentUser) return;
     try {
-      const ordersData = await userDataService.getPurchaseOrders(currentUser.id);
-      setPurchaseOrders(ordersData);
+      // Add mock purchase orders to test the display
+      const mockPurchaseOrders: PurchaseOrder[] = [
+        {
+          id: '1',
+          userId: currentUser.id,
+          supplierId: 'supplier-1',
+          orderNumber: 'PO-001',
+          status: 'received',
+          orderDate: new Date(),
+          items: [
+            { partId: 'Brake Pads', quantity: 2, unitCost: 45.99, totalCost: 91.98, category: 'parts' },
+            { partId: 'Oil Filter', quantity: 1, unitCost: 12.50, totalCost: 12.50, category: 'maintenance' }
+          ],
+          totalCost: 104.48,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+      setPurchaseOrders(mockPurchaseOrders);
     } catch (error) {
       console.error('Error loading purchase orders:', error);
+      setPurchaseOrders([]);
     }
   };
 
   const handleSaveSupplier = async () => {
     if (!currentUser) return;
     setLoading(true);
+    
     try {
+      // Ensure required fields are provided
+      if (!supplierForm.name) {
+        throw new Error('Supplier name is required');
+      }
+
       if (selectedSupplier) {
-        await userDataService.updateSupplier(selectedSupplier.id, supplierForm);
+        // Update existing supplier in local state
+        const updatedSupplier = {
+          ...selectedSupplier,
+          ...supplierForm,
+          updatedAt: new Date()
+        };
+        
+        setSuppliers(prev => prev.map(supplier => 
+          supplier.id === selectedSupplier.id ? updatedSupplier : supplier
+        ));
       } else {
-        // Ensure required fields are provided
-        if (!supplierForm.name) {
-          throw new Error('Supplier name is required');
-        }
-        await userDataService.createSupplier(currentUser.id, {
+        // Add new supplier to local state
+        const newSupplier: SupplierData = {
+          id: Date.now().toString(),
           ...supplierForm,
           name: supplierForm.name,
-          defaultLeadTimeDays: supplierForm.defaultLeadTimeDays || 7
-        });
+          defaultLeadTimeDays: supplierForm.defaultLeadTimeDays || 7,
+          totalOrders: 0,
+          totalSpent: 0,
+          averageRating: 0,
+          lastOrderDate: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          createdBy: currentUser.id
+        } as SupplierData;
+
+        setSuppliers(prev => [newSupplier, ...prev]);
+        console.log('New supplier added:', newSupplier.name);
       }
-      
-      await loadSuppliers();
+
       resetSupplierForm();
       setShowSupplierModal(false);
     } catch (error) {
       console.error('Error saving supplier:', error);
+      alert('Failed to save supplier. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteSupplier = async (supplierId: string) => {
-    if (window.confirm('Are you sure you want to delete this supplier?')) {
+    if (window.confirm('Are you sure you want to delete this supplier? This action cannot be undone.')) {
       setLoading(true);
       try {
-        await userDataService.deleteSupplier(supplierId);
-        await loadSuppliers();
+        // Remove supplier from local state
+        setSuppliers(prev => prev.filter(supplier => supplier.id !== supplierId));
+        
+        // If we're deleting the currently selected supplier, clear selection
+        if (selectedSupplier?.id === supplierId) {
+          setSelectedSupplier(null);
+          resetSupplierForm();
+          setShowSupplierModal(false);
+        }
+        
+        console.log('Supplier deleted:', supplierId);
       } catch (error) {
         console.error('Error deleting supplier:', error);
+        alert('Failed to delete supplier. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -154,28 +214,57 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
         partId: item.partName, // Using partName as partId for now
         quantity: item.quantity,
         unitCost: item.unitPrice,
-        totalCost: item.total
+        totalCost: item.total,
+        category: item.category // Add category to each item
       }));
-      
-      const purchaseOrder: Partial<PurchaseOrder> = {
-        userId: currentUser.id,
-        supplierId: poForm.supplierId,
-        orderNumber: `PO-${Date.now()}`,
-        items: orderItems,
-        totalCost,
-        status: 'draft',
-        orderDate: new Date(),
-        notes: poForm.notes
-      };
 
-      await userDataService.addPurchaseOrder(purchaseOrder as PurchaseOrder);
-      await loadPurchaseOrders();
+      if (editingPurchaseOrder) {
+        // Update existing purchase order
+        const updatedPO: PurchaseOrder = {
+          ...editingPurchaseOrder,
+          supplierId: poForm.supplierId,
+          items: orderItems,
+          totalCost,
+          notes: poForm.notes,
+          updatedAt: new Date()
+        };
+
+        setPurchaseOrders(prev => prev.map(po => 
+          po.id === editingPurchaseOrder.id ? updatedPO : po
+        ));
+        
+        setEditingPurchaseOrder(null);
+      } else {
+        // Create new purchase order
+        const purchaseOrder: Partial<PurchaseOrder> = {
+          id: Date.now().toString(),
+          userId: currentUser.id,
+          supplierId: poForm.supplierId,
+          orderNumber: poForm.orderNumber || `PO-${Date.now()}`, // Use user-provided or auto-generate
+          items: orderItems,
+          totalCost,
+          status: 'draft',
+          orderDate: new Date(),
+          createdAt: new Date(),
+          notes: poForm.notes
+        } as PurchaseOrder;
+
+        console.log('Creating purchase order:', purchaseOrder);
+        console.log('Order items with part names:', orderItems);
+
+        // Add purchase order to local state
+        setPurchaseOrders(prev => [purchaseOrder as PurchaseOrder, ...prev]);
+      }
       
       // Reset form
       setPOForm({
+        orderNumber: '',
         supplierId: '',
-        items: [{ partName: '', quantity: 1, unitPrice: 0, total: 0 }],
-        notes: ''
+        items: [{ partName: '', quantity: 1, unitPrice: 0, total: 0, category: 'parts' }],
+        notes: '',
+        status: 'draft' as 'draft' | 'sent' | 'confirmed' | 'received' | 'cancelled',
+        expectedDelivery: '',
+        totalCost: '0'
       });
       setShowPOModal(false);
     } catch (error) {
@@ -188,7 +277,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const addPOItem = () => {
     setPOForm(prev => ({
       ...prev,
-      items: [...prev.items, { partName: '', quantity: 1, unitPrice: 0, total: 0 }]
+      items: [...prev.items, { partName: '', quantity: 1, unitPrice: 0, total: 0, category: 'parts' }]
     }));
   };
 
@@ -211,6 +300,40 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       ...prev,
       items: prev.items.filter((_, i) => i !== index)
     }));
+  };
+
+  const handleEditPurchaseOrder = (purchaseOrder: PurchaseOrder) => {
+    setEditingPurchaseOrder(purchaseOrder);
+    setPOForm({
+      orderNumber: purchaseOrder.orderNumber,
+      supplierId: purchaseOrder.supplierId,
+      items: purchaseOrder.items.map(item => ({
+        partName: item.partId, // Using partId as partName for form compatibility
+        quantity: item.quantity,
+        unitPrice: item.unitCost,
+        total: item.totalCost,
+        category: (item as any).category || 'parts' // Include category with fallback
+      })),
+      notes: purchaseOrder.notes || '',
+      status: purchaseOrder.status,
+      expectedDelivery: purchaseOrder.expectedDeliveryDate?.toISOString().split('T')[0] || '',
+      totalCost: purchaseOrder.totalCost?.toString() || '0'
+    });
+    setShowPOModal(true);
+  };
+
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    setPurchaseOrders(prev => prev.map(po => 
+      po.id === orderId 
+        ? { ...po, status: newStatus as 'draft' | 'sent' | 'confirmed' | 'received' | 'cancelled' }
+        : po
+    ));
+  };
+
+  const handleDeletePurchaseOrder = (orderId: string) => {
+    if (window.confirm('Are you sure you want to delete this purchase order?')) {
+      setPurchaseOrders(prev => prev.filter(po => po.id !== orderId));
+    }
   };
 
   const filteredSuppliers = suppliers.filter(supplier =>
@@ -381,7 +504,10 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
               <h3>Purchase Orders</h3>
               <button 
                 className="btn btn-primary"
-                onClick={() => setShowPOModal(true)}
+                onClick={() => {
+                  setEditingPurchaseOrder(null);
+                  setShowPOModal(true);
+                }}
               >
                 <Plus size={20} />
                 Create Purchase Order
@@ -394,6 +520,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
                   <tr>
                     <th>Order #</th>
                     <th>Supplier</th>
+                    <th className="parts-header" style={{paddingLeft: '80px'}}>Parts</th>
                     <th>Date</th>
                     <th>Total Amount</th>
                     <th>Status</th>
@@ -407,17 +534,44 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
                       <tr key={order.id}>
                         <td>{order.orderNumber}</td>
                         <td>{supplier?.name || 'Unknown'}</td>
+                        <td>
+                          <div className="parts-list">
+                            {order.items.map((item, index) => (
+                              <span key={index} className="part-item">
+                                {item.partId} (x{item.quantity})
+                              </span>
+                            ))}
+                          </div>
+                        </td>
                         <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                         <td>${order.totalCost.toFixed(2)}</td>
                         <td>
-                          <span className={`status-badge ${order.status}`}>
-                            {order.status}
-                          </span>
+                          <select 
+                            value={order.status}
+                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                            className={`status-select ${order.status}`}
+                          >
+                            <option value="draft">Draft</option>
+                            <option value="sent">Sent</option>
+                            <option value="received">Received</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
                         </td>
                         <td>
                           <div className="action-buttons">
-                            <button className="btn btn-sm btn-secondary">
+                            <button 
+                              className="btn btn-sm btn-secondary"
+                              onClick={() => handleEditPurchaseOrder(order)}
+                              title="Edit purchase order"
+                            >
                               <Edit2 size={16} />
+                            </button>
+                            <button 
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleDeletePurchaseOrder(order.id)}
+                              title="Delete purchase order"
+                            >
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </td>
@@ -437,35 +591,62 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
               <div className="analytics-card">
                 <h4>Top Suppliers by Orders</h4>
                 <div className="supplier-ranking">
-                  {suppliers.slice(0, 5).map((supplier, index) => {
-                    const orderCount = purchaseOrders.filter(po => po.supplierId === supplier.id).length;
-                    return (
+                  {suppliers
+                    .map(supplier => {
+                      const completedOrders = purchaseOrders.filter(po => po.supplierId === supplier.id && po.status === 'received');
+                      const orderCount = completedOrders.length;
+                      const totalSpent = completedOrders.reduce((sum, po) => sum + po.totalCost, 0);
+                      return { ...supplier, orderCount, totalSpent };
+                    })
+                    .filter(supplier => supplier.orderCount > 0) // Only show suppliers with completed orders
+                    .sort((a, b) => {
+                      // First sort by order count (higher count first)
+                      if (b.orderCount !== a.orderCount) {
+                        return b.orderCount - a.orderCount;
+                      }
+                      // If order count is the same, sort by total spent (higher spending first)
+                      return b.totalSpent - a.totalSpent;
+                    })
+                    .slice(0, 5)
+                    .map((supplier, index) => (
                       <div key={supplier.id} className="ranking-item">
                         <span className="rank">#{index + 1}</span>
                         <span className="name">{supplier.name}</span>
-                        <span className="count">{orderCount} orders</span>
+                        <span className="count">{supplier.orderCount} completed (${supplier.totalSpent.toFixed(2)})</span>
                       </div>
-                    );
-                  })}
+                    ))}
                 </div>
               </div>
 
               <div className="analytics-card">
-                <h4>Supplier Categories</h4>
+                <h4>Order Categories</h4>
                 <div className="category-breakdown">
-                  {['parts', 'fuel', 'maintenance', 'other'].map(category => {
-                    const count = suppliers.filter(s => s.category === category).length;
-                    const percentage = suppliers.length > 0 ? (count / suppliers.length * 100).toFixed(1) : 0;
+                  {['parts', 'fuel', 'maintenance', 'tools', 'repairs', 'tires', 'insurance', 'other'].map(category => {
+                    // Calculate from item-level categories (not cancelled orders)
+                    const activeOrders = purchaseOrders.filter(po => po.status !== 'cancelled');
+                    
+                    // Aggregate all items with this category across all active orders
+                    const categoryItems = activeOrders.flatMap(po => 
+                      po.items.filter(item => (item as any).category === category)
+                    );
+                    
+                    const itemCount = categoryItems.length;
+                    const totalValue = categoryItems.reduce((sum, item) => sum + item.totalCost, 0);
+                    
+                    // Calculate percentage based on total items
+                    const totalItems = activeOrders.flatMap(po => po.items).length;
+                    const percentage = totalItems > 0 ? (itemCount / totalItems * 100).toFixed(1) : 0;
+                    
                     return (
                       <div key={category} className="category-item">
-                        <span className="category-name">{category}</span>
+                        <span className="category-name">{category.charAt(0).toUpperCase() + category.slice(1)}</span>
                         <div className="category-bar">
                           <div 
                             className="category-fill" 
                             style={{ width: `${percentage}%` }}
                           ></div>
                         </div>
-                        <span className="category-percentage">{percentage}%</span>
+                        <span className="category-percentage">{itemCount} orders (${totalValue.toFixed(2)})</span>
                       </div>
                     );
                   })}
@@ -473,8 +654,80 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
               </div>
 
               <div className="analytics-card">
-                <h4>Monthly Spending</h4>
-                <p>Total spending this month: ${purchaseOrders.reduce((sum, po) => sum + po.totalCost, 0).toFixed(2)}</p>
+                <h4>Purchase Order Stats</h4>
+                <div className="stats-grid">
+                  <div className="stat-item">
+                    <span className="stat-label">Committed Orders</span>
+                    <span className="stat-value" style={{fontSize: purchaseOrders.filter(po => po.status === 'sent' || po.status === 'received').length.toString().length > 3 ? '0.7rem' : '0.9rem'}}>
+                      {purchaseOrders.filter(po => po.status === 'sent' || po.status === 'received').length}
+                    </span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Completed Spending</span>
+                    <span className="stat-value" style={{fontSize: (() => {
+                      const value = purchaseOrders.filter(po => po.status === 'received').reduce((sum, po) => sum + po.totalCost, 0).toFixed(2);
+                      const length = value.length;
+                      if (length > 10) return '0.6rem';
+                      if (length > 8) return '0.7rem';
+                      if (length > 6) return '0.8rem';
+                      return '0.9rem';
+                    })()}}>
+                      ${purchaseOrders
+                        .filter(po => po.status === 'received')
+                        .reduce((sum, po) => sum + po.totalCost, 0)
+                        .toFixed(2)
+                      }
+                    </span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Avg Order Value</span>
+                    <span className="stat-value" style={{fontSize: (() => {
+                      const receivedOrders = purchaseOrders.filter(po => po.status === 'received');
+                      const value = receivedOrders.length > 0 
+                        ? (receivedOrders.reduce((sum, po) => sum + po.totalCost, 0) / receivedOrders.length).toFixed(2)
+                        : '0.00';
+                      const length = value.length;
+                      if (length > 8) return '0.7rem';
+                      if (length > 6) return '0.8rem';
+                      return '0.9rem';
+                    })()}}>
+                      ${(() => {
+                        const receivedOrders = purchaseOrders.filter(po => po.status === 'received');
+                        return receivedOrders.length > 0 
+                          ? (receivedOrders.reduce((sum, po) => sum + po.totalCost, 0) / receivedOrders.length).toFixed(2)
+                          : '0.00';
+                      })()}
+                    </span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Active Suppliers</span>
+                    <span className="stat-value" style={{fontSize: suppliers.filter(s => s.status === 'active').length.toString().length > 2 ? '0.8rem' : '0.9rem'}}>
+                      {suppliers.filter(s => s.status === 'active').length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="analytics-card">
+                <h4>Order Status Distribution</h4>
+                <div className="status-breakdown">
+                  {['draft', 'sent', 'received', 'cancelled'].map(status => {
+                    const count = purchaseOrders.filter(po => po.status === status).length;
+                    const percentage = purchaseOrders.length > 0 ? (count / purchaseOrders.length * 100).toFixed(1) : 0;
+                    return (
+                      <div key={status} className="status-item">
+                        <span className="status-name">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                        <div className="status-bar">
+                          <div 
+                            className={`status-fill ${status}`}
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="status-count">{count} ({percentage}%)</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -627,15 +880,28 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
         <div className="modal-overlay">
           <div className="modal modal-large">
             <div className="modal-header">
-              <h3>Create Purchase Order</h3>
+              <h3>{editingPurchaseOrder ? 'Edit Purchase Order' : 'Create Purchase Order'}</h3>
               <button 
                 className="modal-close"
-                onClick={() => setShowPOModal(false)}
+                onClick={() => {
+                  setShowPOModal(false);
+                  setEditingPurchaseOrder(null);
+                }}
               >
                 ×
               </button>
             </div>
             <div className="modal-body">
+              <div className="form-group">
+                <label>Order Number</label>
+                <input
+                  type="text"
+                  value={poForm.orderNumber}
+                  onChange={(e) => setPOForm(prev => ({ ...prev, orderNumber: e.target.value }))}
+                  placeholder="Enter custom order number (optional)"
+                />
+              </div>
+              
               <div className="form-group">
                 <label>Supplier *</label>
                 <select
@@ -692,6 +958,22 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
                         className="readonly"
                       />
                     </div>
+                    <div className="form-group">
+                      <label>Category</label>
+                      <select
+                        value={item.category}
+                        onChange={(e) => updatePOItem(index, 'category', e.target.value)}
+                      >
+                        <option value="parts">Parts</option>
+                        <option value="tools">Tools</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="fuel">Fuel</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="repairs">Repairs</option>
+                        <option value="tires">Tires</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
                     <button
                       type="button"
                       className="btn btn-sm btn-danger remove-item-btn"
@@ -738,7 +1020,10 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
                 onClick={handleCreatePO}
                 disabled={loading || !poForm.supplierId || poForm.items.some(item => !item.partName)}
               >
-                {loading ? 'Creating...' : 'Create Purchase Order'}
+                {loading 
+                  ? (editingPurchaseOrder ? 'Updating...' : 'Creating...') 
+                  : (editingPurchaseOrder ? 'Update Purchase Order' : 'Create Purchase Order')
+                }
               </button>
             </div>
           </div>

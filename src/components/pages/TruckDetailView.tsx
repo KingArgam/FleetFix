@@ -65,8 +65,8 @@ const TruckDetailView: React.FC<TruckDetailViewProps> = () => {
       // Load related data
       if (state.currentUser) {
         const [maintenance, parts] = await Promise.all([
-          userDataService.getMaintenanceEntries(state.currentUser.id),
-          userDataService.getParts(state.currentUser.id)
+          Promise.resolve(state.maintenance || []),
+          Promise.resolve(state.parts || [])
         ]);
 
         // Filter by truck

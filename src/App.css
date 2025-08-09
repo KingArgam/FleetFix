@@ -1391,13 +1391,13 @@ body {
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 .app-body {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Loading Screen */
@@ -1409,7 +1409,7 @@ body {
   background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
 }
 
-.loading-spinner {
+.loading-spinner-legacy {
   text-align: center;
   color: white;
 }
@@ -1717,6 +1717,8 @@ body {
 .search-bar {
   position: relative;
   width: 100%;
+  overflow: hidden; /* Prevent icon overflow */
+  border-radius: 0.5rem;
 }
 
 .search-icon {
@@ -1726,6 +1728,13 @@ body {
   transform: translateY(-50%);
   color: var(--gray-400);
   font-size: 1rem;
+  z-index: 2;
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-input {
@@ -1734,6 +1743,9 @@ body {
   border: 1px solid var(--gray-300);
   border-radius: 0.5rem;
   font-size: 0.875rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-right {
@@ -1818,6 +1830,14 @@ body {
   transition: background-color 0.2s ease;
   margin-bottom: var(--spacing-1);
   position: relative;
+  /* Button-specific styles for React 18 compatibility */
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  width: 100%;
 }
 
 .nav-item:hover {

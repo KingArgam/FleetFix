@@ -1,5 +1,37 @@
 /* Comprehensive Enhanced Styles for Fleet Management System */
 
+/* Fixed Search and Icon Positioning - Prevents overflow issues */
+.search-input-container,
+.input-with-icon {
+  position: relative;
+  overflow: hidden; /* Prevent icon overflow */
+  border-radius: 6px;
+}
+
+.search-icon,
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary, #6b7280);
+  z-index: 2;
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-input:not(.no-icon),
+.input-with-icon input {
+  padding-left: 40px !important;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Supplier Management Styles */
 .supplier-manager {
   padding: 24px;
@@ -33,6 +65,9 @@
   border: 1px solid #d1d5db;
   border-radius: 6px;
   min-width: 240px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .suppliers-grid {
@@ -903,6 +938,20 @@
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 12px;
+  flex-shrink: 0;
+}
+
+/* Fix for buttons with loading spinners */
+.loading-spinner.inline {
+  display: inline-flex;
+  padding: 0;
+  margin-right: 8px;
+}
+
+.loading-spinner.inline::before {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
 }
 
 @keyframes spin {

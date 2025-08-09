@@ -196,6 +196,7 @@ export interface PurchaseOrderItem {
   quantity: number;
   unitCost: number;
   totalCost: number;
+  category?: string; // Add category field for part-level categorization
 }
 
 export interface NotificationData {

@@ -77,8 +77,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         await updateMaintenance(maintenance.id, maintenanceData);
         onSuccess(maintenanceData);
       } else {
-        // Create new maintenance
-        await addMaintenance(maintenanceData);
+        // Create new maintenance - only call onSuccess, let the parent handle adding to state
         onSuccess(maintenanceData);
       }
     } catch (error) {

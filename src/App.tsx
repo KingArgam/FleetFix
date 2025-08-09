@@ -111,7 +111,7 @@ const AppContent: React.FC = () => {
                 } 
               />
               <Route 
-                path="/analytics-dashboard" 
+                path="/analytics" 
                 element={
                   <PageErrorBoundary pageName="Analytics Dashboard">
                     <AnalyticsDashboard />

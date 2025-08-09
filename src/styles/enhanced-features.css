@@ -314,6 +314,69 @@
   color: #991b1b;
 }
 
+/* Status Select Dropdown */
+.status-select {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.status-select.draft {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.status-select.sent {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-select.received {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-select.cancelled {
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+/* Parts List in Purchase Orders Table */
+.parts-header {
+  text-align: center;
+  padding-left: 20px;
+}
+
+.parts-list {
+  max-width: 200px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.part-item {
+  display: inline;
+  color: #374151;
+  font-weight: 500;
+}
+
+.part-item:not(:last-child)::after {
+  content: ", ";
+  color: #6b7280;
+}
+
 /* Role Badges */
 .role-badge {
   display: inline-flex;
@@ -909,6 +972,107 @@
 .count {
   color: #6b7280;
   font-size: 0.875rem;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+  min-height: 80px;
+  justify-content: center;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.stat-label {
+  font-size: 0.65rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+  text-align: center;
+  line-height: 1.1;
+  word-wrap: break-word;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #111827;
+  text-align: center;
+  white-space: nowrap;
+  max-width: 100%;
+  font-family: 'Courier New', monospace;
+  /* Dynamic font sizing based on content length */
+  font-size: clamp(0.6rem, 4vw, 0.9rem);
+  transform: scale(1);
+  transform-origin: center;
+}
+
+/* Status Breakdown */
+.status-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-name {
+  min-width: 80px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-bar {
+  flex: 1;
+  height: 20px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.status-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.status-fill.draft {
+  background-color: #fb923c;
+}
+
+.status-fill.sent {
+  background-color: #3b82f6;
+}
+
+.status-fill.received {
+  background-color: #10b981;
+}
+
+.status-fill.cancelled {
+  background-color: #ef4444;
+}
+
+.status-count {
+  min-width: 80px;
+  text-align: right;
+  font-size: 0.875rem;
+  color: #6b7280;
 }
 
 

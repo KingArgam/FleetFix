@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, startTransition } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import userDataService from '../../services/UserDataService';
 
@@ -11,6 +11,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
   const { state } = useAppContext();
   const { currentUser } = state;
   const location = useLocation();
+  const navigate = useNavigate();
   const [lowStockCount, setLowStockCount] = useState(0);
 
   useEffect(() => {
@@ -151,9 +152,9 @@ const Sidebar: React.FC<SidebarProps> = () => {
             (item.path === '/dashboard' && location.pathname === '/');
           
           return (
-            <Link
+            <button
               key={item.path}
-              to={item.path}
+              onClick={() => startTransition(() => navigate(item.path))}
               className={`nav-item ${isActive ? 'active' : ''}`}
             >
               <span className="nav-icon">{renderIcon(item.icon)}</span>
@@ -163,7 +164,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
                   {item.badge}
                 </span>
               )}
-            </Link>
+            </button>
           );
         })}
       </nav>

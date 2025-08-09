@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, startTransition } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/AuthService';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import '../../styles/auth.css';
@@ -27,24 +27,64 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.email.trim() || !formData.password) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
-
+    
     try {
-      const result = await authService.login({ email: formData.email, password: formData.password });
+      console.log('Attempting to login...', { email: formData.email });
       
-      if ('user' in result) {
-        // Login successful
-        localStorage.setItem('userRole', result.user.role);
-        localStorage.setItem('currentUser', JSON.stringify(result.user));
-        navigate('/dashboard');
+      // Add timeout to prevent hanging (same as signup)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Login timeout - taking too long')), 20000);
+      });
+      
+      const loginPromise = authService.login({ 
+        email: formData.email.trim(), 
+        password: formData.password 
+      });
+      
+      const result = await Promise.race([loginPromise, timeoutPromise]);
+      
+      console.log('Login result:', result);
+      
+      if (result && typeof result === 'object' && 'error' in result && result.error) {
+        console.error('Login error:', result.error);
+        const errorObj = result.error as any;
+        setError(`Login failed: ${errorObj.message || 'Unknown error'}`);
+        
+        // Add more detailed error logging
+        console.log('Login attempt details:', {
+          email: formData.email,
+          passwordLength: formData.password.length,
+          errorCode: errorObj.code || 'unknown',
+          errorMessage: errorObj.message || 'Unknown error'
+        });
       } else {
-        // Login failed
-        setError(result.error.message || 'Login failed');
+        console.log('Login successful!', result);
+        
+        // Clear form and error state
+        setFormData({ email: '', password: '' });
+        setError('');
+        
+        // Use startTransition to prevent concurrent mode warning
+        startTransition(() => {
+          navigate('/dashboard');
+        });
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      setError('An unexpected error occurred');
+    } catch (err: any) {
+      console.error('Login error or timeout:', err);
+      
+      if (err.message?.includes('timeout')) {
+        setError('Login is taking longer than expected. Please try again or check your credentials.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +129,7 @@ const LoginPage: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <div className="input-with-icon has-icon password-input">
+            <div className="input-with-icon has-icon has-toggle">
               <Lock size={18} className="input-icon" />
               <input
                 type={showPassword ? "text" : "password"}
@@ -103,7 +143,7 @@ const LoginPage: React.FC = () => {
               />
               <button
                 type="button"
-                className="password-toggle"
+                className="toggle-password"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={isLoading}
               >
@@ -114,12 +154,12 @@ const LoginPage: React.FC = () => {
 
           <button 
             type="submit" 
-            className="submit-button primary"
+            className="auth-submit-btn"
             disabled={isLoading || !formData.email || !formData.password}
           >
             {isLoading ? (
               <>
-                <div className="spinner" />
+                <div className="loading-spinner" />
                 Signing In...
               </>
             ) : (
@@ -128,12 +168,19 @@ const LoginPage: React.FC = () => {
           </button>
         </form>
 
+
+
         <div className="auth-footer">
           <p>
             Don't have an account?{' '}
-            <Link to="/signup" className="auth-link">
+            <button 
+              type="button"
+              className="auth-link"
+              onClick={() => startTransition(() => navigate('/signup'))}
+              disabled={isLoading}
+            >
               Create Account
-            </Link>
+            </button>
           </p>
         </div>
       </div>

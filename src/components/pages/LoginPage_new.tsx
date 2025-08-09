@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, startTransition } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/AuthService';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import '../../styles/auth.css';
@@ -131,9 +131,13 @@ const LoginPage: React.FC = () => {
         <div className="auth-footer">
           <p>
             Don't have an account?{' '}
-            <Link to="/signup" className="auth-link">
+            <button 
+              type="button"
+              className="auth-link"
+              onClick={() => startTransition(() => navigate('/signup'))}
+            >
               Create Account
-            </Link>
+            </button>
           </p>
         </div>
       </div>

@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MaintenanceForm } from '../forms/MaintenanceForm';
+import { useAppContext } from '../../contexts/AppContext';
 
-const MaintenancePage: React.FC<any> = ({ trucks, maintenanceEntries, onAddEntry }) => {
+const MaintenancePage: React.FC<any> = ({ trucks: propTrucks, maintenanceEntries: propMaintenanceEntries, onAddEntry }) => {
+  const { state, addMaintenance } = useAppContext();
+  const { trucks: stateTrucks, maintenance: stateMaintenance } = state;
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [displayedEntries, setDisplayedEntries] = useState<any[]>([]);
+
+  // Use data from props or state
+  const trucks = propTrucks || stateTrucks;
+  const maintenanceEntries = propMaintenanceEntries || stateMaintenance;
+
+  // Update displayed entries when maintenance data changes
+  useEffect(() => {
+    setDisplayedEntries(maintenanceEntries || []);
+  }, [maintenanceEntries]);
 
   const handleAddMaintenanceClick = () => {
     setShowMaintenanceForm(true);
   };
 
-  const handleMaintenanceSaved = (entry: any) => {
-    onAddEntry(entry);
+  const handleMaintenanceSaved = async (entry: any) => {
+    // Use AppContext to add maintenance entry
+    await addMaintenance(entry);
+    // Only call props callback if there's no addMaintenance function (for backward compatibility)
+    if (onAddEntry && !addMaintenance) {
+      onAddEntry(entry);
+    }
     setShowMaintenanceForm(false);
   };
 
@@ -34,7 +52,7 @@ const MaintenancePage: React.FC<any> = ({ trucks, maintenanceEntries, onAddEntry
               </tr>
             </thead>
             <tbody>
-              {maintenanceEntries?.map((entry: any) => {
+              {displayedEntries?.map((entry: any) => {
                 const truck = trucks?.find((t: any) => t.id === entry.truckId);
                 return (
                   <tr key={entry.id}>
@@ -44,6 +62,10 @@ const MaintenancePage: React.FC<any> = ({ trucks, maintenanceEntries, onAddEntry
                     <td>{entry.mileage.toLocaleString()}</td>
                     <td>${entry.cost}</td>
                     <td>{entry.performedBy || 'N/A'}</td>
+                    <td>
+                      <button className="btn btn-sm btn-secondary" onClick={() => {/* openEditModal(entry) */}}>Edit</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => {/* handleDelete(entry.id) */}} style={{ marginLeft: '8px' }}>Delete</button>
+                    </td>
                   </tr>
                 );
               }) || (

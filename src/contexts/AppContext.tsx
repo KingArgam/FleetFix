@@ -54,7 +54,7 @@ const initialState: AppState = {
   parts: [],
   loading: true,
   syncing: false,
-  lastSyncTime: null,
+  lastSyncTime: new Date(),
   tempTruckForm: null,
   tempMaintenanceForm: null,
   tempPartForm: null,
@@ -259,9 +259,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   }, []);
 
   // Convenience methods
-  const addTruck = async (truckData: Omit<Truck, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => {
+  const addTruck = async (truckData: Omit<Truck, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'> | Truck) => {
+    // If it's already a complete Truck object (from TruckForm), use it directly
+    if ('id' in truckData && 'createdAt' in truckData) {
+      dispatch({ type: 'ADD_TRUCK', payload: truckData as Truck });
+      return;
+    }
+    
+    // Otherwise, use DataService to create it
     const dataService = DataService.getInstance();
-    const result = await dataService.createTruck(truckData);
+    const result = await dataService.createTruck(truckData as Omit<Truck, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>);
     if (result.success && result.data) {
       dispatch({ type: 'ADD_TRUCK', payload: result.data });
     }
@@ -281,9 +288,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     dispatch({ type: 'DELETE_TRUCK', payload: id });
   };
 
-  const addMaintenance = async (maintenanceData: Omit<MaintenanceEntry, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => {
+  const addMaintenance = async (maintenanceData: Omit<MaintenanceEntry, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'> | MaintenanceEntry) => {
+    // If it's already a complete MaintenanceEntry object (from MaintenanceForm), use it directly
+    if ('id' in maintenanceData && 'createdAt' in maintenanceData) {
+      dispatch({ type: 'ADD_MAINTENANCE', payload: maintenanceData as MaintenanceEntry });
+      return; // Return early to prevent calling DataService
+    }
+    
+    // Otherwise, use DataService to create it
     const dataService = DataService.getInstance();
-    const result = await dataService.createMaintenanceEntry(maintenanceData);
+    const result = await dataService.createMaintenanceEntry(maintenanceData as Omit<MaintenanceEntry, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>);
     if (result.success && result.data) {
       dispatch({ type: 'ADD_MAINTENANCE', payload: result.data });
     }
@@ -303,9 +317,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     dispatch({ type: 'DELETE_MAINTENANCE', payload: id });
   };
 
-  const addPart = async (partData: Omit<Part, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => {
+  const addPart = async (partData: Omit<Part, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'> | Part) => {
+    // If it's already a complete Part object (from PartForm), use it directly
+    if ('id' in partData && 'createdAt' in partData) {
+      dispatch({ type: 'ADD_PART', payload: partData as Part });
+      return;
+    }
+    
+    // Otherwise, use DataService to create it
     const dataService = DataService.getInstance();
-    const result = await dataService.createPart(partData);
+    const result = await dataService.createPart(partData as Omit<Part, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>);
     if (result.success && result.data) {
       dispatch({ type: 'ADD_PART', payload: result.data });
     }

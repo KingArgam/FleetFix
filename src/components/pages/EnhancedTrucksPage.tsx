@@ -55,6 +55,16 @@ const EnhancedTrucksPage: React.FC = () => {
     setCurrentPage(1);
   }, [state.trucks, searchQuery, filters]);
 
+  // Apply filters when data changes
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  // Initial load - apply filters when component mounts
+  useEffect(() => {
+    applyFilters();
+  }, []);
+
   // Pagination effect
   useEffect(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -229,15 +239,38 @@ const EnhancedTrucksPage: React.FC = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.csv';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        alert('CSV import functionality would be implemented here. File selected: ' + file.name);
-        // In a real implementation, you would:
-        // 1. Parse the CSV file
-        // 2. Validate the data
-        // 3. Import the trucks using dataService.importTrucksFromCSV() or similar
-        // 4. Refresh the truck list
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const text = event.target?.result as string;
+          const lines = text.split('\n').filter(Boolean);
+          const headers = lines[0].split(',');
+          const trucksData = lines.slice(1).map(line => {
+            const values = line.split(',');
+            const truck: any = {};
+            headers.forEach((header, idx) => {
+              truck[header.trim()] = values[idx]?.trim();
+            });
+            return truck;
+          });
+          // Update trucks in context (simulate import)
+          for (const truck of trucksData) {
+            await addTruck({
+              make: truck['Make'],
+              model: truck['Model'],
+              year: Number(truck['Year']),
+              licensePlate: truck['License Plate'],
+              vin: truck['VIN'],
+              status: truck['Status'],
+              mileage: Number(truck['Mileage']),
+              nickname: truck['Nickname'] || '',
+            });
+          }
+          alert('CSV import complete!');
+        };
+        reader.readAsText(file);
       }
     };
     input.click();
@@ -275,24 +308,29 @@ const EnhancedTrucksPage: React.FC = () => {
                 onChange={() => handleSelectTruck(truck.id)}
                 className="truck-checkbox"
               />
-              {/* Downtime Actions */}
-              {truck.status === 'In Service' ? (
-                <button 
-                  onClick={() => handleStartDowntime(truck)} 
-                  className="action-btn downtime-start"
-                  title="Start Downtime"
-                >
-                  <span>⏹️</span>
-                </button>
-              ) : truck.status === 'Out for Repair' ? (
-                <button 
-                  onClick={() => handleEndDowntime(truck)} 
-                  className="action-btn downtime-end"
-                  title="End Downtime"
-                >
-                  <span>▶️</span>
-                </button>
-              ) : null}
+              {/* Downtime/Status Dropdown and Note */}
+              <select
+                value={truck.status}
+                onChange={e => {
+                  const newStatus = e.target.value;
+                  updateTruck(truck.id, { status: newStatus as TruckStatus });
+                  setTimeout(() => {
+                    const note = prompt(`Add a note for status '${newStatus}' (optional):`, '');
+                    if (note !== null && note.trim() !== '') {
+                      // Store note in customFields for extensibility
+                      const customFields = { ...(truck.customFields || {}), statusNote: note };
+                      updateTruck(truck.id, { customFields });
+                    }
+                  }, 100);
+                }}
+                className="action-btn status-dropdown"
+                title="Change Status"
+              >
+                <option value="In Service">In Service</option>
+                <option value="Needs Attention">Needs Attention</option>
+                <option value="Out for Repair">Out for Repair</option>
+                <option value="Retired">Retired</option>
+              </select>
               <button 
                 onClick={() => handleViewTruckDetails(truck)} 
                 className="action-btn view"
@@ -378,7 +416,27 @@ const EnhancedTrucksPage: React.FC = () => {
               <td>{truck.year}</td>
               <td>{truck.mileage.toLocaleString()}</td>
               <td>
-                <span className={getStatusBadgeClass(truck.status)}>{truck.status}</span>
+                <select
+                  value={truck.status}
+                  onChange={e => {
+                    const newStatus = e.target.value;
+                    updateTruck(truck.id, { status: newStatus as TruckStatus });
+                    setTimeout(() => {
+                      const note = prompt(`Add a note for status '${newStatus}' (optional):`, '');
+                      if (note !== null && note.trim() !== '') {
+                        const customFields = { ...(truck.customFields || {}), statusNote: note };
+                        updateTruck(truck.id, { customFields });
+                      }
+                    }, 100);
+                  }}
+                  className="action-btn status-dropdown"
+                  title="Change Status"
+                >
+                  <option value="In Service">In Service</option>
+                  <option value="Needs Attention">Needs Attention</option>
+                  <option value="Out for Repair">Out for Repair</option>
+                  <option value="Retired">Retired</option>
+                </select>
               </td>
               <td>{truck.nickname || '-'}</td>
               <td>

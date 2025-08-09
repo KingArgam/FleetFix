@@ -16,10 +16,10 @@ export const PartForm: React.FC<PartFormProps> = ({ part, onSuccess, onCancel })
     name: part?.name || '',
     partNumber: part?.partNumber || '',
     category: part?.category || 'Other' as PartCategory,
-    cost: part?.cost || 0,
+    cost: part?.cost?.toString() || '',
     supplier: part?.supplier || '',
-    inventoryLevel: part?.inventoryLevel || 0,
-    minStockLevel: part?.minStockLevel || 0,
+    inventoryLevel: part?.inventoryLevel?.toString() || '',
+    minStockLevel: part?.minStockLevel?.toString() || '',
     location: part?.location || ''
   });
 
@@ -61,9 +61,7 @@ export const PartForm: React.FC<PartFormProps> = ({ part, onSuccess, onCancel })
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'cost' || name === 'inventoryLevel' || name === 'minStockLevel' 
-        ? parseFloat(value) || 0 
-        : value
+      [name]: value
     }));
   };
 
@@ -84,10 +82,10 @@ export const PartForm: React.FC<PartFormProps> = ({ part, onSuccess, onCancel })
         name: formData.name,
         partNumber: formData.partNumber,
         category: formData.category,
-        cost: formData.cost,
+        cost: formData.cost === '' ? 0 : parseFloat(formData.cost),
         supplier: formData.supplier,
-        inventoryLevel: formData.inventoryLevel,
-        minStockLevel: formData.minStockLevel,
+        inventoryLevel: formData.inventoryLevel === '' ? 0 : parseFloat(formData.inventoryLevel),
+        minStockLevel: formData.minStockLevel === '' ? 0 : parseFloat(formData.minStockLevel),
         location: formData.location,
         createdAt: new Date(),
         createdBy: state.currentUser?.id || 'unknown'

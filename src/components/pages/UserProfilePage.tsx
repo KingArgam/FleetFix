@@ -11,7 +11,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = () => {
   const navigate = useNavigate();
   const { state } = useAppContext();
   const { currentUser } = state;
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'preferences' | 'privacy'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'privacy'>('profile');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
@@ -229,27 +229,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = () => {
             Profile
           </button>
           <button 
-            className={`tab-button ${activeTab === 'security' ? 'active' : ''}`}
-            onClick={() => setActiveTab('security')}
-          >
-            <Lock size={20} />
-            Security
-          </button>
-          <button 
-            className={`tab-button ${activeTab === 'preferences' ? 'active' : ''}`}
-            onClick={() => setActiveTab('preferences')}
-          >
-            <User size={20} />
-            Preferences
-          </button>
-          <button 
             className={`tab-button ${activeTab === 'privacy' ? 'active' : ''}`}
             onClick={() => setActiveTab('privacy')}
           >
             <Shield size={20} />
             Privacy & Data
           </button>
-        </div>      <div className="tab-content">
+        </div>
+        <div className="tab-content">
         {activeTab === 'profile' && (
           <div className="profile-tab">
             <div className="card">
@@ -310,126 +297,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = () => {
           </div>
         )}
 
-        {activeTab === 'security' && (
-          <div className="security-tab">
-            <div className="card">
-              <div className="card-header">
-                <h3>Email Verification</h3>
-              </div>
-              <div className="card-body">
-                <div className="verification-status">
-                  <div className="status-indicator">
-                    <CheckCircle className="icon-verified" size={20} />
-                    <span>Email verification status</span>
-                  </div>
-                  <button 
-                    onClick={handleSendEmailVerification}
-                    className="btn btn-secondary"
-                    disabled={loading || emailVerificationSent}
-                  >
-                    {emailVerificationSent ? 'Verification Sent' : 'Send Verification Email'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-header">
-                <h3>Change Password</h3>
-              </div>
-              <div className="card-body">
-                <form onSubmit={handlePasswordChange}>
-                  <div className="form-group">
-                    <label htmlFor="currentPassword">Current Password</label>
-                    <div className="input-group">
-                      <Lock className="input-icon" size={20} />
-                      <input
-                        type={showPasswords.current ? "text" : "password"}
-                        id="currentPassword"
-                        value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                        placeholder="Enter your current password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle"
-                        onClick={() => togglePasswordVisibility('current')}
-                      >
-                        {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="newPassword">New Password</label>
-                    <div className="input-group">
-                      <Lock className="input-icon" size={20} />
-                      <input
-                        type={showPasswords.new ? "text" : "password"}
-                        id="newPassword"
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                        placeholder="Enter your new password"
-                        required
-                        minLength={6}
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle"
-                        onClick={() => togglePasswordVisibility('new')}
-                      >
-                        {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="confirmPassword">Confirm New Password</label>
-                    <div className="input-group">
-                      <Lock className="input-icon" size={20} />
-                      <input
-                        type={showPasswords.confirm ? "text" : "password"}
-                        id="confirmPassword"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        placeholder="Confirm your new password"
-                        required
-                        minLength={6}
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle"
-                        onClick={() => togglePasswordVisibility('confirm')}
-                      >
-                        {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="form-actions">
-                    <button type="submit" className="btn btn-primary" disabled={loading}>
-                      {loading ? 'Changing...' : 'Change Password'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'preferences' && (
-          <div className="preferences-tab">
-            <div className="card">
-              <div className="card-header">
-                <h3>User Preferences</h3>
-              </div>
-              <div className="card-body">
-                <p>Preference settings will be implemented here.</p>
-              </div>
-            </div>
-          </div>
-        )}
+  // ...existing code...
 
         {activeTab === 'privacy' && (
           <div className="privacy-tab">

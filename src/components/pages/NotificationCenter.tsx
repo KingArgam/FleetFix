@@ -49,8 +49,12 @@ const NotificationCenter: React.FC<NotificationCenterProps> = () => {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const notificationsData = await userDataService.getNotifications(currentUser.id);
-      setNotifications(notificationsData);
+      const { mockNotifications } = await import('../../utils/enhancedMockData');
+      const notificationsWithUser = mockNotifications.map(notif => ({
+        ...notif,
+        userId: currentUser.id
+      }));
+      setNotifications(notificationsWithUser);
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {

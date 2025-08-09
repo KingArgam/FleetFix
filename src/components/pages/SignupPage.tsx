@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, Building2, Users, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import authService from '../../services/AuthService';
+import React, { useState, startTransition } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from '../../services/AuthService';
+import { User, Mail, Lock, Building, Building2, Users, Eye, EyeOff, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import '../../styles/auth.css';
 
 const SignupPage: React.FC = () => {
@@ -11,8 +11,7 @@ const SignupPage: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    companyName: '',
-    teamCode: ''
+    companyName: ''
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -57,23 +56,47 @@ const SignupPage: React.FC = () => {
     setError(null);
 
     try {
-      const result = await authService.signup({
+      console.log('Attempting to create account...', { email: formData.email, name: formData.name });
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout - account creation took too long')), 15000);
+      });
+      
+      const signupPromise = authService.signup({
         name: formData.name.trim(),
         email: formData.email.trim(),
         password: formData.password,
-        companyName: formData.companyName.trim() || undefined,
-        teamCode: formData.teamCode.trim() || undefined
+        companyName: formData.companyName.trim() || undefined
       });
       
-      if ('error' in result) {
-        setError(result.error.message);
+      const result = await Promise.race([signupPromise, timeoutPromise]);
+      
+      console.log('Signup result:', result);
+      
+      if (result && typeof result === 'object' && 'error' in result && result.error) {
+        console.error('Signup error:', result.error);
+  setError((typeof result.error === 'object' && result.error && 'message' in result.error && typeof result.error.message === 'string') ? result.error.message : 'Signup failed.');
       } else {
         // Signup successful
-        alert('Account created successfully! Please check your email to verify your account.');
-        navigate('/login');
+        console.log('Account created successfully!', result);
+        
+        // Clear error state
+        setError(null);
+        
+        // Navigate immediately without popup or delay
+        startTransition(() => {
+          navigate('/login');
+        });
       }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err: any) {
+      console.error('Signup error or timeout:', err);
+      
+      if (err.message?.includes('timeout')) {
+        setError('Account creation is taking longer than expected. Please check if your account was created and try logging in.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -160,24 +183,7 @@ const SignupPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="teamCode">Team Code (Optional)</label>
-            <div className="input-with-icon has-icon">
-              <Users size={18} className="input-icon" />
-              <input
-                type="text"
-                id="teamCode"
-                name="teamCode"
-                value={formData.teamCode}
-                onChange={handleInputChange}
-                placeholder="Enter team code to join existing team"
-                disabled={isLoading}
-              />
-            </div>
-            <small className="field-hint">
-              If you have a team code from your organization, enter it here to join their fleet.
-            </small>
-          </div>
+
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
@@ -259,7 +265,7 @@ const SignupPage: React.FC = () => {
             )}
           </div>
 
-          <button type="submit" className="auth-button" disabled={isLoading}>
+          <button type="submit" className="auth-submit-btn" disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 size={18} className="loading-spinner" />
@@ -274,9 +280,14 @@ const SignupPage: React.FC = () => {
         <div className="auth-footer">
           <p>
             Already have an account?{' '}
-            <Link to="/login" className="auth-link">
+            <button 
+              type="button"
+              className="auth-link"
+              onClick={() => startTransition(() => navigate('/login'))}
+              disabled={isLoading}
+            >
               Sign in here
-            </Link>
+            </button>
           </p>
         </div>
       </div>
