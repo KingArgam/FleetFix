@@ -132,7 +132,7 @@ const testingResults = {
     signupPage: { status: 'pending', issues: [] },
     passwordReset: { status: 'pending', issues: [] }
   },
-  protectedPages: {},
+  protectedPages: {} as { [key: string]: { status: string; issues: any[] } },
   visualDesign: {
     centering: { status: 'pending', issues: [] },
     responsiveness: { status: 'pending', issues: [] },

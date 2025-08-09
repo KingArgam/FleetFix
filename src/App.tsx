@@ -10,7 +10,7 @@ import AdminPanel from './components/pages/AdminPanel';
 import BulkVehicleManager from './components/pages/BulkVehicleManager';
 import SupplierManager from './components/pages/SupplierManager';
 import AnalyticsDashboard from './components/pages/AnalyticsDashboard';
-import NotificationCenter from './components/pages/NotificationCenter';
+import { NotificationCenter } from './components/pages/NotificationCenter';
 import UserProfilePage from './components/pages/UserProfilePage';
 import TruckDetailView from './components/pages/TruckDetailView';
 import { DowntimeRecordsPage } from './components/pages/DowntimeRecordsPage';

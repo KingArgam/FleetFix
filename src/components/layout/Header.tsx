@@ -587,9 +587,7 @@ const Header: React.FC<HeaderProps> = () => {
               </div>
             )}
             
-            {notifications.length > 0 && (
-              {/* Removed notification footer test actions as requested */}
-            )}
+            {/* Removed notification footer test actions as requested */}
           </div>
         </div>
       )}

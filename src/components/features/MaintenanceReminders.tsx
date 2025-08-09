@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Calendar, Clock, MapPin, Plus, X } from 'lucide-react';
 import { MaintenanceReminder, Truck, MaintenanceType } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
-import { mockMaintenanceReminders } from '../../utils/enhancedMockData';
+
 
 interface ReminderCardProps {
   reminder: MaintenanceReminder;
@@ -268,7 +268,7 @@ export const MaintenanceReminders: React.FC = () => {
 
   const loadData = () => {
     setTrucks(state.trucks);
-    setReminders(mockMaintenanceReminders); // In real app, would load from service
+  setReminders([]); // No mock data, load from service in real app
   };
 
   const handleSaveReminder = (reminderData: Partial<MaintenanceReminder>) => {

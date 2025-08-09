@@ -20,7 +20,7 @@ interface NotificationSettings {
   reminderDays: number;
 }
 
-const NotificationCenter: React.FC<NotificationCenterProps> = () => {
+export const NotificationCenter: React.FC<NotificationCenterProps> = () => {
   const { state } = useAppContext();
   const { currentUser } = state;
   
