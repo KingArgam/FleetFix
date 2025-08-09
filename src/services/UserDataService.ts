@@ -213,6 +213,29 @@ export interface NotificationData {
 }
 
 class UserDataService {
+  // Fetch all user profiles
+  public async getUsers(): Promise<UserProfile[]> {
+    try {
+      const q = query(collection(db, 'userProfiles'), orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as UserProfile[];
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+  }
+
+  // Fetch all companies
+  public async getCompanies(): Promise<CompanyData[]> {
+    try {
+      const q = query(collection(db, 'companies'), orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CompanyData[];
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+      return [];
+    }
+  }
   private listeners: Map<string, () => void> = new Map();
   private rateLimitService = new RateLimitService();
 

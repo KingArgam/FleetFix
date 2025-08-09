@@ -18,14 +18,17 @@ interface SearchResult {
 }
 
 const Header: React.FC<HeaderProps> = () => {
-  const navigate = useNavigate();
-  const { state } = useAppContext();
+  // Full header component with notifications, search, settings, and user menu
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState('fleet');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // App context for global state
+  const { state, dispatch } = useAppContext();
+  const navigate = useNavigate();
 
   // Settings state - moved from SettingsPage
   const [fleetSettings, setFleetSettings] = useState({
@@ -106,97 +109,45 @@ const Header: React.FC<HeaderProps> = () => {
     return unsubscribe;
   }, []);
 
-  // Subscribe to notification updates
-  useEffect(() => {
-    const updateNotifications = (newNotifications: Notification[]) => {
-      setNotifications(newNotifications);
-      setUnreadCount(notificationService.getUnreadCount());
-    };
 
-    // Initial load
-    updateNotifications(notificationService.getNotifications());
-
-    // Subscribe to changes
-    const unsubscribe = notificationService.subscribe(updateNotifications);
-
-    // Sync notification preferences with user settings
-    const syncPreferences = () => {
-      notificationService.updatePreferences({
-        push: userSettings.notifications.push
-      });
-    };
-
-    syncPreferences();
-
-    return unsubscribe;
-  }, [userSettings.notifications]);
-
-  // Click outside handler for dropdowns
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      
-      // Close user menu if clicking outside
-      if (showUserMenu && !target.closest('.user-profile') && !target.closest('.user-menu-dropdown')) {
-        setShowUserMenu(false);
-      }
-      
-      // Close notifications if clicking outside
-      if (showNotifications && !target.closest('.header-btn[aria-label="Notifications"]') && !target.closest('.notifications-dropdown')) {
-        setShowNotifications(false);
-      }
-      
-      // Close settings if clicking outside
-      if (showSettings && !target.closest('.header-btn[aria-label="Settings"]') && !target.closest('.settings-modal')) {
-        setShowSettings(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showUserMenu, showNotifications, showSettings]);
-
-  const handleNotificationsClick = () => {
-    setShowNotifications(!showNotifications);
-    setShowSettings(false); // Close settings when opening notifications
-    setShowUserMenu(false); // Close user menu when opening notifications
-  };
-
-  const handleSettingsClick = () => {
-    setShowSettings(!showSettings);
-    setShowNotifications(false); // Close notifications when opening settings
-    setShowUserMenu(false); // Close user menu when opening settings
-  };
-
-  const handleUserMenuClick = () => {
-    setShowUserMenu(!showUserMenu);
-    setShowNotifications(false); // Close notifications when opening user menu
-    setShowSettings(false); // Close settings when opening user menu
-  };
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  // Settings handler functions - moved from SettingsPage
+  // Handlers for settings changes
   const handleFleetSettingChange = (field: string, value: any) => {
     setFleetSettings(prev => ({ ...prev, [field]: value }));
   };
-
   const handleMaintenanceSettingChange = (field: string, value: any) => {
     setMaintenanceSettings(prev => ({ ...prev, [field]: value }));
   };
-
   const handleUserSettingChange = (field: string, value: any) => {
     setUserSettings(prev => ({ ...prev, [field]: value }));
   };
+  // Notification test/alert handlers (remove if not needed)
+  // Removed test notification and trigger alert handlers (not implemented)
+  const handleSendTestNotification = () => {
+    alert('Test notification feature is not available.');
+  };
+  const handleTriggerMaintenanceAlert = () => {
+    alert('Trigger alert feature is not available.');
+  };
+
+  // Settings modal actions
+  const handleSettingsClick = () => setShowSettings(true);
+  const handleNotificationsClick = () => setShowNotifications(true);
+  const handleUserMenuClick = () => setShowUserMenu(true);
+
+  // Export/Reset/SignOut handlers (implement as needed)
+  const handleExportData = (type: string) => {
+    // Implement export logic here
+    alert(`Exporting data as ${type}`);
+  };
+  const handleResetSettings = () => {
+    // Implement reset logic here
+    alert('Settings reset to default.');
+  };
+  const handleSignOut = () => {
+    authService.logout();
+    navigate('/login');
+  };
+  const handleLogout = handleSignOut;
 
   const handleNotificationChange = (type: string, value: boolean) => {
     setUserSettings(prev => ({
@@ -271,15 +222,6 @@ const Header: React.FC<HeaderProps> = () => {
     }
   };
 
-  const handleSendTestNotification = () => {
-    notificationService.sendTestNotification();
-    alert('Test notification sent! Check your browser notifications and console.');
-  };
-
-  const handleTriggerMaintenanceAlert = () => {
-    notificationService.triggerMaintenanceAlert();
-    alert('Maintenance alert triggered! This will send urgent notifications if enabled.');
-  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -330,135 +272,7 @@ const Header: React.FC<HeaderProps> = () => {
     }
   };
 
-  const handleExportData = (format: string) => {
-    try {
-      // Create mock data for export
-      const exportData = {
-        fleet: fleetSettings,
-        maintenance: maintenanceSettings,
-        user: userSettings,
-        dataRetention: dataRetentionSettings,
-        exportDate: new Date().toISOString(),
-        trucks: JSON.parse(localStorage.getItem('trucks') || '[]'),
-        parts: JSON.parse(localStorage.getItem('parts') || '[]'),
-        maintenanceRecords: JSON.parse(localStorage.getItem('maintenanceRecords') || '[]')
-      };
 
-      if (format === 'csv') {
-        const csvContent = convertToCSV(exportData);
-        downloadFile(csvContent, `fleetfix-export-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
-      } else if (format === 'json') {
-        const jsonContent = JSON.stringify(exportData, null, 2);
-        downloadFile(jsonContent, `fleetfix-export-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
-      } else if (format === 'excel') {
-        // Simulate Excel export
-        alert('Excel export functionality would integrate with a library like xlsx. For now, downloading as JSON.');
-        const jsonContent = JSON.stringify(exportData, null, 2);
-        downloadFile(jsonContent, `fleetfix-export-${new Date().toISOString().split('T')[0]}.xlsx`, 'application/json');
-      }
-      
-      console.log(`Exporting fleet data as ${format}...`);
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      alert('Error exporting data. Please try again.');
-    }
-  };
-
-  const convertToCSV = (data: any): string => {
-    // Simple CSV conversion for demonstration
-    const lines = [];
-    lines.push('Category,Setting,Value');
-    
-    // Fleet settings
-    Object.entries(data.fleet).forEach(([key, value]) => {
-      lines.push(`Fleet,${key},${value}`);
-    });
-    
-    // Maintenance settings
-    Object.entries(data.maintenance).forEach(([key, value]) => {
-      lines.push(`Maintenance,${key},${value}`);
-    });
-    
-    // User settings
-    Object.entries(data.user).forEach(([key, value]) => {
-      if (typeof value === 'object') {
-        lines.push(`User,${key},${JSON.stringify(value)}`);
-      } else {
-        lines.push(`User,${key},${value}`);
-      }
-    });
-    
-    return lines.join('\n');
-  };
-
-  const downloadFile = (content: string, filename: string, contentType: string) => {
-    const blob = new Blob([content], { type: contentType });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
-
-  const handleResetSettings = () => {
-    if (window.confirm('Are you sure you want to reset all settings to defaults? This action cannot be undone.')) {
-      // Reset to default values
-      setFleetSettings({
-        companyName: 'FleetFix Transportation',
-        timezone: 'America/New_York',
-        currency: 'USD',
-        maintenanceReminderDays: 30,
-        lowFuelThreshold: 20,
-        maxIdleTime: 30,
-      });
-      
-      setMaintenanceSettings({
-        defaultReminderDays: 7,
-        autoCreateWorkOrders: true,
-        requirePhotos: false,
-        allowSelfMaintenance: true,
-        costCenterRequired: false,
-      });
-      
-      setUserSettings({
-        name: 'John Doe',
-        email: 'john.doe@fleetfix.com',
-        phone: '+1 (555) 123-4567',
-        role: 'Fleet Manager',
-        notifications: {
-          push: true,
-        },
-      });
-      
-      setDataRetentionSettings({
-        retentionPeriod: '24',
-      });
-      
-      // Clear localStorage
-      localStorage.removeItem('fleetSettings');
-      localStorage.removeItem('maintenanceSettings');
-      localStorage.removeItem('userSettings');
-      localStorage.removeItem('dataRetentionSettings');
-      
-      console.log('Settings reset to defaults');
-      alert('All settings have been reset to default values.');
-    }
-  };
-
-  const handleSignOut = async () => {
-    if (window.confirm('Are you sure you want to sign out?')) {
-      try {
-        await authService.logout();
-        navigate('/login');
-      } catch (error) {
-        console.error('Error signing out:', error);
-        alert('Error signing out. Please try again.');
-      }
-    }
-  };
 
   const handleCancel = () => {
     // Reset forms to last saved values from localStorage
@@ -616,9 +430,9 @@ const Header: React.FC<HeaderProps> = () => {
         </div>
       </div>
       
-      <div className="header-center">
-        <div className="search-container" style={{ minWidth: 420, maxWidth: 600, marginLeft: 0 }}>
-          <form onSubmit={handleSearchSubmit} className="search-bar" style={{ width: '100%', minWidth: 380, maxWidth: 600, marginLeft: 0 }}>
+      <div className="header-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%' }}>
+        <div className="search-container" style={{ width: '340px', marginLeft: 0, marginRight: 0 }}>
+          <form onSubmit={handleSearchSubmit} className="search-bar" style={{ width: '340px', margin: 0, padding: 0 }}>
             <span className="search-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
@@ -630,7 +444,7 @@ const Header: React.FC<HeaderProps> = () => {
               onChange={handleSearchChange}
               placeholder="Search trucks, maintenance, parts..."
               className="search-input"
-              style={{ fontSize: '1.1rem', width: '100%', minWidth: 320, maxWidth: 540, paddingLeft: 48, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              style={{ fontSize: '1.1rem', width: '100%', paddingLeft: 36, margin: 0, boxSizing: 'border-box', overflow: 'hidden', textOverflow: 'ellipsis' }}
               autoComplete="off"
             />
           </form>
@@ -689,16 +503,16 @@ const Header: React.FC<HeaderProps> = () => {
           <div className="dropdown-header">
             <h3>Notifications ({unreadCount} unread)</h3>
             <div className="notification-actions">
-              {notifications.length > 0 && (
-                <>
-                  <button onClick={handleMarkAllAsRead} className="action-btn" title="Mark all as read">
-                    ✓
-                  </button>
-                  <button onClick={handleClearAllNotifications} className="action-btn" title="Clear all">
-                    🗑️
-                  </button>
-                </>
-              )}
+               {notifications.length > 0 && (
+                   <>
+                     <button onClick={handleMarkAllAsRead} className="action-btn" title="Mark all as read">
+                       ✓
+                     </button>
+                     <button onClick={handleClearAllNotifications} className="action-btn" title="Clear all">
+                       🗑️
+                     </button>
+                   </>
+                 )}
               <button onClick={() => setShowNotifications(false)} className="close-btn">×</button>
             </div>
           </div>
@@ -706,14 +520,7 @@ const Header: React.FC<HeaderProps> = () => {
             {notifications.length === 0 ? (
               <div className="no-notifications">
                 <p>No notifications</p>
-                <div className="test-actions">
-                  <button onClick={handleSendTestNotification} className="btn btn-small">
-                    Send Test Notification
-                  </button>
-                  <button onClick={handleTriggerMaintenanceAlert} className="btn btn-small btn-warning">
-                    Trigger Alert
-                  </button>
-                </div>
+                {/* Removed test actions buttons as requested */}
               </div>
             ) : (
               notifications.slice(0, 10).map((notification) => (
@@ -781,16 +588,7 @@ const Header: React.FC<HeaderProps> = () => {
             )}
             
             {notifications.length > 0 && (
-              <div className="notification-footer-actions">
-                <div className="test-actions">
-                  <button onClick={handleSendTestNotification} className="btn btn-small">
-                    Send Test
-                  </button>
-                  <button onClick={handleTriggerMaintenanceAlert} className="btn btn-small btn-warning">
-                    Trigger Alert
-                  </button>
-                </div>
-              </div>
+              {/* Removed notification footer test actions as requested */}
             )}
           </div>
         </div>

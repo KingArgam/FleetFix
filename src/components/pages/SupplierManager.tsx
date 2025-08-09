@@ -67,25 +67,8 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const loadPurchaseOrders = async () => {
     if (!currentUser) return;
     try {
-      // Add mock purchase orders to test the display
-      const mockPurchaseOrders: PurchaseOrder[] = [
-        {
-          id: '1',
-          userId: currentUser.id,
-          supplierId: 'supplier-1',
-          orderNumber: 'PO-001',
-          status: 'received',
-          orderDate: new Date(),
-          items: [
-            { partId: 'Brake Pads', quantity: 2, unitCost: 45.99, totalCost: 91.98, category: 'parts' },
-            { partId: 'Oil Filter', quantity: 1, unitCost: 12.50, totalCost: 12.50, category: 'maintenance' }
-          ],
-          totalCost: 104.48,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      setPurchaseOrders(mockPurchaseOrders);
+      const userOrders = await userDataService.getPurchaseOrders(currentUser.id);
+      setPurchaseOrders(userOrders || []);
     } catch (error) {
       console.error('Error loading purchase orders:', error);
       setPurchaseOrders([]);

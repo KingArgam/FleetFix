@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Truck, TruckStatus, ValidationError } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
-import { mockCustomFields } from '../../utils/enhancedMockData';
+
 import '../../styles/enhanced.css';
 
 interface TruckFormProps {
@@ -27,7 +27,8 @@ export const TruckForm: React.FC<TruckFormProps> = ({ truck, onSuccess, onCancel
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const truckCustomFields = mockCustomFields.filter(cf => cf.entityType === 'truck' && cf.isActive);
+  // No mock custom fields; use an empty array for production
+  const truckCustomFields: any[] = [];
 
   const getFieldError = (fieldName: string): string | undefined => {
     const error = errors.find(e => e.field === fieldName);
@@ -253,7 +254,7 @@ export const TruckForm: React.FC<TruckFormProps> = ({ truck, onSuccess, onCancel
                       required={field.required}
                     >
                       <option value="">Select...</option>
-                      {field.options?.map(option => (
+                      {field.options?.map((option: string) => (
                         <option key={option} value={option}>{option}</option>
                       ))}
                     </select>

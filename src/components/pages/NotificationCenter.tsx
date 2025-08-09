@@ -374,14 +374,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = () => {
                       <span className="text-warning"> (Permission denied)</span>
                     )}
                   </p>
-                  {settings.browserNotifications && (
-                    <button 
-                      className="btn btn-sm btn-secondary"
-                      onClick={sendTestNotification}
-                    >
-                      Send Test Notification
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -471,5 +463,3 @@ const NotificationCenter: React.FC<NotificationCenterProps> = () => {
     </div>
   );
 };
-
-export default NotificationCenter;

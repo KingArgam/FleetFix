@@ -63,14 +63,15 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
   return (
     <div className="search-and-filter">
       <div className="search-bar">
-        <div className="search-input-container">
-          <Search className="search-icon" size={20} />
+        <div className="search-input-container" style={{ marginLeft: 0 }}>
+          <Search className="search-icon" size={20} style={{ left: 10 }} />
           <input
             type="text"
             placeholder={`Search ${entityType}...`}
             value={searchQuery}
             onChange={handleSearchChange}
             className="search-input"
+            style={{ paddingLeft: 36 }}
           />
           {searchQuery && (
             <button 

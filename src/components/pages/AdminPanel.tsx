@@ -25,24 +25,51 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
   // User edit form state
   const [editUserData, setEditUserData] = useState<Partial<UserProfile>>({});
 
+
+  // Generate invitation codes (stub for now)
+  const generateInviteCodes = () => {
+    setFleetManagerCode('FLEET-MANAGER-1234');
+    setWorkerCode('WORKER-5678');
+    setCodeExpiry(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  };
+
+  // Load users from service
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      // Use the correct method for fetching all users
+  const userList = await userDataService.getUsers();
+  setUsers(userList || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load companies from service
+  const loadCompanies = async () => {
+    setLoading(true);
+    try {
+      // Use the correct method for fetching all companies
+  const companyList = await userDataService.getCompanies();
+  setCompanies(companyList || []);
+    } catch (error) {
+      console.error('Error loading companies:', error);
+      setCompanies([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadUsers();
     loadCompanies();
     generateInviteCodes();
   }, []);
 
-const loadUsers = async () => {
-  setUsers([]);
-    } catch (error) {
-      console.error('Error loading users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCompanies = async () => {
-  setCompanies([]);
-  };
+// (Removed duplicate/invalid function definitions outside the component)
 
   const handleEditUser = (user: UserProfile) => {
     setSelectedUser(user);

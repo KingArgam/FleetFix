@@ -70,54 +70,8 @@ class NotificationService {
         timestamp: new Date(n.timestamp)
       }));
     } else {
-      // Initialize with some sample notifications
-      this.notifications = [
-        {
-          id: '1',
-          type: 'maintenance',
-          title: 'Maintenance Due',
-          message: 'Truck FLT-001 maintenance due in 500 miles',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          read: false,
-          priority: 'high',
-          actionRequired: true,
-          relatedEntity: {
-            type: 'truck',
-            id: 'FLT-001',
-            name: 'Truck FLT-001'
-          }
-        },
-        {
-          id: '2',
-          type: 'part',
-          title: 'Low Inventory',
-          message: 'Oil filters running low - 3 remaining',
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-          read: false,
-          priority: 'medium',
-          actionRequired: true,
-          relatedEntity: {
-            type: 'part',
-            id: 'oil-filter',
-            name: 'Oil Filters'
-          }
-        },
-        {
-          id: '3',
-          type: 'maintenance',
-          title: 'Maintenance Completed',
-          message: 'Truck FLT-003 completed scheduled maintenance',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-          read: false,
-          priority: 'low',
-          actionRequired: false,
-          relatedEntity: {
-            type: 'truck',
-            id: 'FLT-003',
-            name: 'Truck FLT-003'
-          }
-        }
-      ];
+      // No notifications if no data in storage
+      this.notifications = [];
       this.saveNotifications();
     }
   }
@@ -165,45 +119,6 @@ class NotificationService {
       this.checkForLowFuel();
       this.checkForLowParts();
     }, 30000);
-
-    // Generate a random event every 2-5 minutes for demo purposes
-    const generateRandomEvent = () => {
-      const events = [
-        () => this.addNotification({
-          type: 'fuel',
-          title: 'Low Fuel Alert',
-          message: `Truck FLT-${Math.floor(Math.random() * 10).toString().padStart(3, '0')} fuel level at ${Math.floor(Math.random() * 20 + 5)}%`,
-          priority: 'medium',
-          actionRequired: true
-        }),
-        () => this.addNotification({
-          type: 'maintenance',
-          title: 'Maintenance Reminder',
-          message: `Truck FLT-${Math.floor(Math.random() * 10).toString().padStart(3, '0')} due for service in ${Math.floor(Math.random() * 1000 + 100)} miles`,
-          priority: 'high',
-          actionRequired: true
-        }),
-        () => this.addNotification({
-          type: 'alert',
-          title: 'Route Update',
-          message: `Traffic alert on Route ${Math.floor(Math.random() * 10)} - 15 minute delay expected`,
-          priority: 'low',
-          actionRequired: false
-        })
-      ];
-
-      // Randomly trigger an event
-      if (Math.random() < 0.3) { // 30% chance every interval
-        const randomEvent = events[Math.floor(Math.random() * events.length)];
-        randomEvent();
-      }
-
-      // Schedule next check
-      setTimeout(generateRandomEvent, Math.random() * 180000 + 120000); // 2-5 minutes
-    };
-
-    // Start the random event generator
-    setTimeout(generateRandomEvent, 60000); // First event after 1 minute
   }
 
   private checkForMaintenanceDue(): void {
@@ -398,37 +313,12 @@ class NotificationService {
     return timestamp.toLocaleDateString();
   }
 
-  // Test methods for demonstration
-  public sendTestNotification(): void {
-    this.addNotification({
-      type: 'info',
-      title: 'Test Notification',
-      message: 'This is a test notification to verify the system is working correctly.',
-      priority: 'low',
-      actionRequired: false
-    });
-  }
 
   public static getInstance(): NotificationService {
     if (!NotificationService.instance) {
       NotificationService.instance = new NotificationService();
     }
     return NotificationService.instance;
-  }
-
-  public triggerMaintenanceAlert(): void {
-    this.addNotification({
-      type: 'maintenance',
-      title: 'URGENT: Maintenance Required',
-      message: 'Truck FLT-999 has exceeded maintenance interval and must be serviced immediately.',
-      priority: 'urgent',
-      actionRequired: true,
-      relatedEntity: {
-        type: 'truck',
-        id: 'FLT-999',
-        name: 'Emergency Test Truck'
-      }
-    });
   }
 }
 

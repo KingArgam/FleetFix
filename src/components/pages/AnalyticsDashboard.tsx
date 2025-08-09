@@ -63,47 +63,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       }));
       setDowntimeRecords(parsed);
     } else {
-      // Initialize with sample downtime records for demonstration
-      const sampleRecords = [
-        {
-          id: 'downtime-1',
-          truckId: 'truck-1',
-          startTime: new Date('2025-08-05T09:30:00'),
-          endTime: new Date('2025-08-05T15:45:00'),
-          category: 'Mechanical Failure',
-          reason: 'Brake system repair',
-          cost: 850,
-          isActive: false,
-          createdAt: new Date('2025-08-05'),
-          updatedAt: new Date('2025-08-05')
-        },
-        {
-          id: 'downtime-2',
-          truckId: 'truck-2',
-          startTime: new Date('2025-08-07T14:00:00'),
-          endTime: new Date('2025-08-08T11:30:00'),
-          category: 'Scheduled Maintenance',
-          reason: 'Oil change and tire rotation',
-          cost: 450,
-          isActive: false,
-          createdAt: new Date('2025-08-07'),
-          updatedAt: new Date('2025-08-08')
-        },
-        {
-          id: 'downtime-3',
-          truckId: 'truck-3',
-          startTime: new Date('2025-08-08T16:20:00'),
-          endTime: undefined, // Still ongoing
-          category: 'Accident Damage',
-          reason: 'Minor collision repair',
-          cost: 0,
-          isActive: true,
-          createdAt: new Date('2025-08-08'),
-          updatedAt: new Date('2025-08-08')
-        }
-      ];
-      localStorage.setItem('downtimeRecords', JSON.stringify(sampleRecords));
-      setDowntimeRecords(sampleRecords);
+      setDowntimeRecords([]); // No downtime records, set to empty
     }
   };
 
@@ -154,9 +114,21 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
 
       // Calculate analytics
       const analytics = await calculateAnalytics(trucks, filteredRecords, parts, filteredAllMaintenanceRecords);
-      setAnalyticsData(analytics);
+      // Only set analyticsData if there is real data
+      if (
+        analytics &&
+        ((analytics.costBreakdown && analytics.costBreakdown.some(cb => cb.amount > 0)) ||
+         (analytics.totalMaintenanceCost && analytics.totalMaintenanceCost > 0) ||
+         (analytics.maintenanceTrends && analytics.maintenanceTrends.some(mt => mt.cost > 0))
+        )
+      ) {
+        setAnalyticsData(analytics);
+      } else {
+        setAnalyticsData(null);
+      }
     } catch (error) {
       console.error('Error loading analytics:', error);
+      setAnalyticsData(null);
     } finally {
       setLoading(false);
     }
@@ -312,13 +284,21 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       };
     }).sort((a, b) => b.reliability - a.reliability);
 
-    // Cost breakdown - use filtered records for date range analysis
-    const filteredMaintenanceCost = records.reduce((sum, record) => sum + (record.cost || 0), 0);
-    const costBreakdown = [
-      { category: 'Preventive Maintenance', amount: filteredMaintenanceCost * 0.6, percentage: 60 },
-      { category: 'Repairs', amount: filteredMaintenanceCost * 0.25, percentage: 25 },
-      { category: 'Parts Replacement', amount: filteredMaintenanceCost * 0.15, percentage: 15 }
-    ];
+    // Cost breakdown - use actual maintenance records and categories
+    const breakdownMap: { [category: string]: number } = {};
+    let totalCost = 0;
+    records.forEach(record => {
+      const category = record.type || 'Other';
+      breakdownMap[category] = (breakdownMap[category] || 0) + (record.cost || 0);
+      totalCost += record.cost || 0;
+    });
+    const costBreakdown = Object.entries(breakdownMap)
+      .map(([category, amount]) => ({
+        category,
+        amount,
+        percentage: totalCost > 0 ? Math.round((amount / totalCost) * 100) : 0
+      }))
+      .sort((a, b) => b.amount - a.amount);
 
     // Vehicle Performance Summary
     const vehiclePerformance = trucks.map(truck => {
@@ -487,17 +467,18 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     );
   }
 
-  if (!analyticsData) {
-    return (
-      <div className="analytics-dashboard error">
-        <p>Unable to load analytics data.</p>
-        <button className="btn btn-primary" onClick={loadAnalyticsData}>
-          <RefreshCw size={20} />
-          Retry
-        </button>
-      </div>
-    );
-  }
+
+  // Always show the dashboard UI, even if analyticsData is null (no data)
+  const safeAnalytics = analyticsData || {
+    fleetUtilization: 0,
+    totalMaintenanceCost: 0,
+    avgMaintenanceCostPerVehicle: 0,
+    mostCommonIssues: [],
+    maintenanceTrends: [],
+    vehicleReliability: [],
+    costBreakdown: [],
+    vehiclePerformance: []
+  };
 
   return (
     <div className="analytics-dashboard">
@@ -566,7 +547,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
             <BarChart3 className="icon primary" />
           </div>
           <div className="card-content">
-            <h3>{analyticsData.fleetUtilization.toFixed(1)}%</h3>
+            <h3>{safeAnalytics.fleetUtilization.toFixed(1)}%</h3>
             <p>Fleet Utilization <small>(Real-time)</small></p>
           </div>
         </div>
@@ -576,7 +557,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
             <DollarSign className="icon success" />
           </div>
           <div className="card-content">
-            <h3>{formatCurrency(analyticsData.totalMaintenanceCost)}</h3>
+            <h3>{formatCurrency(safeAnalytics.totalMaintenanceCost)}</h3>
             <p>Total Maintenance Cost <small>(All-time)</small></p>
           </div>
         </div>
@@ -586,7 +567,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
             <Wrench className="icon warning" />
           </div>
           <div className="card-content">
-            <h3>{formatCurrency(analyticsData.avgMaintenanceCostPerVehicle)}</h3>
+            <h3>{formatCurrency(safeAnalytics.avgMaintenanceCostPerVehicle)}</h3>
             <p>Avg Cost Per Vehicle <small>(All-time)</small></p>
           </div>
         </div>
@@ -629,7 +610,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
             <div className="chart-panel">
               <h3>Cost Breakdown</h3>
               <div className="cost-breakdown-chart">
-                {analyticsData.costBreakdown.map((item, index) => (
+                {safeAnalytics.costBreakdown.map((item, index) => (
                   <div key={index} className="cost-item">
                     <div className="cost-label">
                       <span className="category">{item.category}</span>
@@ -653,8 +634,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
               <h3>Maintenance Trends</h3>
               <div className="trends-chart">
                 <div className="chart-area">
-                  {analyticsData.maintenanceTrends.map((trend, index) => {
-                    const maxCost = Math.max(...analyticsData.maintenanceTrends.map(t => t.cost));
+                  {safeAnalytics.maintenanceTrends.map((trend, index) => {
+                    const maxCost = Math.max(...safeAnalytics.maintenanceTrends.map(t => t.cost));
                     const height = maxCost > 0 ? (trend.cost / maxCost) * 200 : 0;
                     
                     return (
@@ -686,7 +667,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
                 </button>
               </div>
               <div className="reliability-chart">
-                {analyticsData.vehicleReliability.slice(0, 10).map((vehicle, index) => (
+                {safeAnalytics.vehicleReliability.slice(0, 10).map((vehicle, index) => (
                   <div key={index} className="reliability-item">
                     <div className="vehicle-info">
                       <span className="vehicle-name">{vehicle.vehicleName}</span>
@@ -732,7 +713,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
             </button>
           </div>
           <div className="vehicle-performance-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {analyticsData.vehiclePerformance.slice(0, 3).map((vehicle, index) => (
+            {safeAnalytics.vehiclePerformance.slice(0, 3).map((vehicle, index) => (
               <div key={vehicle.vehicleId} className="performance-item" style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -801,13 +782,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
           <div className="insights-list">
             <div className="insight-item">
               <TrendingUp className="insight-icon" />
-              <span>Fleet utilization is {analyticsData.fleetUtilization > 80 ? 'optimal' : analyticsData.fleetUtilization > 60 ? 'good' : 'below target'} at {analyticsData.fleetUtilization.toFixed(1)}%</span>
+              <span>Fleet utilization is {safeAnalytics.fleetUtilization > 80 ? 'optimal' : safeAnalytics.fleetUtilization > 60 ? 'good' : 'below target'} at {safeAnalytics.fleetUtilization.toFixed(1)}%</span>
             </div>
             <div className="insight-item">
               <DollarSign className="insight-icon" />
               <span>
                 {(() => {
-                  const trends = analyticsData.maintenanceTrends;
+                  const trends = safeAnalytics.maintenanceTrends;
                   if (trends.length >= 2) {
                     const lastMonth = trends[trends.length - 1].cost;
                     const previousMonth = trends[trends.length - 2].cost;
@@ -815,7 +796,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
                     const percentChange = previousMonth > 0 ? ((change / previousMonth) * 100).toFixed(1) : '0';
                     return `Maintenance costs ${change >= 0 ? 'increased' : 'decreased'} by ${Math.abs(parseFloat(percentChange))}% from last period`;
                   }
-                  return `Average maintenance cost: ${formatCurrency(analyticsData.avgMaintenanceCostPerVehicle)} per vehicle`;
+                  return `Average maintenance cost: ${formatCurrency(safeAnalytics.avgMaintenanceCostPerVehicle)} per vehicle`;
                 })()}
               </span>
             </div>
@@ -823,8 +804,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
               <Wrench className="insight-icon" />
               <span>
                 {(() => {
-                  if (analyticsData.mostCommonIssues.length > 0) {
-                    const topIssue = analyticsData.mostCommonIssues[0];
+                  if (safeAnalytics.mostCommonIssues.length > 0) {
+                    const topIssue = safeAnalytics.mostCommonIssues[0];
                     return `Most frequent issue: ${topIssue.issue} (${topIssue.count} occurrences)`;
                   } else {
                     // Check if there are maintenance records but no categorized issues
@@ -868,7 +849,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
               <Calendar className="insight-icon" />
               <span>
                 {(() => {
-                  const trends = analyticsData.maintenanceTrends;
+                  const trends = safeAnalytics.maintenanceTrends;
                   if (trends.length >= 1) {
                     const totalRecords = trends.reduce((sum, trend) => sum + trend.count, 0);
                     const avgPerMonth = totalRecords / trends.length;
@@ -882,8 +863,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
               <TrendingUp className="insight-icon" />
               <span>
                 {(() => {
-                  const preventiveCost = analyticsData.costBreakdown.find(c => c.category === 'Preventive Maintenance')?.amount || 0;
-                  const repairCost = analyticsData.costBreakdown.find(c => c.category === 'Repairs')?.amount || 0;
+                  const preventiveCost = safeAnalytics.costBreakdown.find(c => c.category === 'Preventive Maintenance')?.amount || 0;
+                  const repairCost = safeAnalytics.costBreakdown.find(c => c.category === 'Repairs')?.amount || 0;
                   const totalCost = preventiveCost + repairCost;
                   
                   if (totalCost > 0) {
@@ -976,7 +957,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {analyticsData.vehiclePerformance.map((vehicle, index) => (
+                    {safeAnalytics.vehiclePerformance.map((vehicle, index) => (
                       <tr key={vehicle.vehicleId} style={{
                         borderBottom: '1px solid #e9ecef',
                         backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa'
@@ -1041,25 +1022,25 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
               }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '18px', fontWeight: '600', color: '#28a745' }}>
-                    ${analyticsData.vehiclePerformance[0]?.costPerMile.toFixed(4) || '0.0000'}
+                    ${safeAnalytics.vehiclePerformance[0]?.costPerMile.toFixed(4) || '0.0000'}
                   </div>
                   <div style={{ fontSize: '11px', color: '#6c757d', fontWeight: '500' }}>Best Performer</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '18px', fontWeight: '600', color: '#dc3545' }}>
-                    ${analyticsData.vehiclePerformance[analyticsData.vehiclePerformance.length - 1]?.costPerMile.toFixed(4) || '0.0000'}
+                    ${safeAnalytics.vehiclePerformance[safeAnalytics.vehiclePerformance.length - 1]?.costPerMile.toFixed(4) || '0.0000'}
                   </div>
                   <div style={{ fontSize: '11px', color: '#6c757d', fontWeight: '500' }}>Needs Attention</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '18px', fontWeight: '600', color: '#007bff' }}>
-                    ${(analyticsData.vehiclePerformance.reduce((sum, v) => sum + v.costPerMile, 0) / analyticsData.vehiclePerformance.length).toFixed(4)}
+                    ${(safeAnalytics.vehiclePerformance.length > 0 ? (safeAnalytics.vehiclePerformance.reduce((sum, v) => sum + v.costPerMile, 0) / safeAnalytics.vehiclePerformance.length) : 0).toFixed(4)}
                   </div>
                   <div style={{ fontSize: '11px', color: '#6c757d', fontWeight: '500' }}>Fleet Average</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '18px', fontWeight: '600', color: '#28a745' }}>
-                    {analyticsData.vehiclePerformance.filter(v => v.status === 'In Service').length}
+                    {safeAnalytics.vehiclePerformance.filter(v => v.status === 'In Service').length}
                   </div>
                   <div style={{ fontSize: '11px', color: '#6c757d', fontWeight: '500' }}>Active Vehicles</div>
                 </div>
@@ -1109,7 +1090,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
               <div>
                 <h3 style={{ marginBottom: '15px', color: '#495057' }}>🚛 Individual Vehicle Breakdowns</h3>
                 <div style={{ display: 'grid', gap: '15px' }}>
-                  {analyticsData.vehicleReliability.map((vehicle, index) => (
+                  {safeAnalytics.vehicleReliability.map((vehicle, index) => (
                     <div key={index} style={{ 
                       border: '1px solid #e9ecef', 
                       borderRadius: '8px', 
