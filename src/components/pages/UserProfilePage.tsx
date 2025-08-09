@@ -16,11 +16,22 @@ const UserProfilePage: React.FC<UserProfilePageProps> = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Profile form state
+  // Try to get avatarUrl from currentUser (UserProfile) if available, else blank
   const [profileData, setProfileData] = useState({
-    displayName: '',
-    email: '',
-    avatarUrl: ''
+    displayName: (currentUser as any)?.name || (currentUser as any)?.displayName || '',
+    email: currentUser?.email || '',
+    avatarUrl: (currentUser as any)?.avatarUrl || ''
   });
+  // Update form fields if user changes (e.g., after login or update)
+  React.useEffect(() => {
+    if (currentUser) {
+      setProfileData({
+        displayName: (currentUser as any).name || (currentUser as any).displayName || '',
+        email: currentUser.email || '',
+        avatarUrl: (currentUser as any).avatarUrl || ''
+      });
+    }
+  }, [currentUser]);
   
   // Password form state
   const [passwordData, setPasswordData] = useState({
@@ -46,6 +57,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = () => {
 
     try {
       await authService.updateProfile(profileData);
+      // Also update Firestore user profile (if exists)
+      if (currentUser) {
+        await userDataService.updateUserProfile(currentUser.id, {
+          displayName: profileData.displayName,
+          email: profileData.email,
+          avatarUrl: profileData.avatarUrl
+        });
+      }
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
@@ -113,11 +132,23 @@ const UserProfilePage: React.FC<UserProfilePageProps> = () => {
 
     try {
       if (dataType === 'all') {
-        // Export all data types
+        // Export all data types, including user profile
         const dataTypes = ['trucks', 'maintenance', 'parts', 'suppliers'] as const;
         for (const type of dataTypes) {
           const csvData = await userDataService.exportDataToCSV(currentUser.id, type);
           downloadCSV(csvData, `${type}-export-${new Date().toISOString().split('T')[0]}.csv`);
+        }
+        // Export user profile as JSON
+        const userProfile = await userDataService.getUserProfile(currentUser.id);
+        if (userProfile) {
+          const profileBlob = new Blob([JSON.stringify(userProfile, null, 2)], { type: 'application/json' });
+          const profileUrl = URL.createObjectURL(profileBlob);
+          const link = document.createElement('a');
+          link.href = profileUrl;
+          link.download = `user-profile-${new Date().toISOString().split('T')[0]}.json`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
         }
         setMessage({ type: 'success', text: 'All data exported successfully!' });
       } else {
