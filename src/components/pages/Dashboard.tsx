@@ -71,7 +71,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="card-body">
             {(() => {
-              // Show all maintenance entries regardless of date - sort by most recent first
+             
               const sortedMaintenance = maintenance?.slice().sort((a: MaintenanceEntry, b: MaintenanceEntry) => 
                 new Date(b.date).getTime() - new Date(a.date).getTime()
               ) || [];

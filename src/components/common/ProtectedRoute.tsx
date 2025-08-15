@@ -17,9 +17,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const location = useLocation();
 
   useEffect(() => {
-    // Temporarily bypass authentication for testing
+    
     if (process.env.NODE_ENV === 'development') {
-      // Create a mock user for testing and set it in AuthService
+      
       const mockUser: User = {
         id: 'test-user-123',
         email: 'test@example.com',
@@ -36,12 +36,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         }
       };
       
-      // Set the mock user through AuthService so it properly notifies all listeners
+      
       authService.setMockUser(mockUser);
       setUser(mockUser);
       setIsLoading(false);
       
-      // Initialize with sample data for testing
+      
       const sampleTrucks = [
         {
           id: 'truck-1',
@@ -138,7 +138,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         }
       ];
 
-      // Store sample data in localStorage to persist
+      
       localStorage.setItem('sampleTrucks', JSON.stringify(sampleTrucks));
       localStorage.setItem('sampleMaintenance', JSON.stringify(sampleMaintenance));
       

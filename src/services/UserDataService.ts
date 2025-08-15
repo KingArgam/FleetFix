@@ -238,33 +238,33 @@ class UserDataService {
   private syncInProgress = false;
 
   constructor() {
-    // Auto-sync offline data when connection is restored
+    
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
         console.log('Connection restored, syncing offline data...');
         this.syncOfflineDataToFirestore().catch(console.error);
       });
 
-      // Also try to sync on page load
+      
       this.syncOfflineDataToFirestore().catch(console.error);
 
-      // Periodic sync every 5 minutes when online
+      
       setInterval(() => {
         if (navigator.onLine) {
           this.syncOfflineDataToFirestore().catch(console.error);
         }
-      }, 5 * 60 * 1000); // 5 minutes
+      }, 5 * 60 * 1000); 
 
-      // Sync before page unload
+      
       window.addEventListener('beforeunload', () => {
         if (navigator.onLine) {
-          // Use sendBeacon for reliable data sending during page unload
+          
           const collections = ['trucks', 'maintenance', 'parts', 'suppliers', 'purchaseOrders'];
           for (const collection of collections) {
             const offlineData = localStorage.getItem(`offline_${collection}`);
             if (offlineData && JSON.parse(offlineData).length > 0) {
               console.log(`Attempting to sync ${collection} data before page unload`);
-              // Note: sendBeacon has size limits, but this is better than nothing
+              
               navigator.sendBeacon('/api/sync', JSON.stringify({ collection, data: offlineData }));
             }
           }
@@ -314,19 +314,19 @@ class UserDataService {
 
     for (const record of offlineData) {
       try {
-        // Create new document if it has offline ID, otherwise update existing
+        
         if (record.id.startsWith('offline_')) {
-          // Create new document with server-generated ID
+         
           const docRef = doc(collection(db, collectionName));
           batch.set(docRef, {
             ...record,
-            id: docRef.id, // Use Firestore-generated ID
+            id: docRef.id, 
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
           syncedIds.push(record.id);
         } else {
-          // Update existing document
+         
           const docRef = doc(db, collectionName, record.id);
           batch.set(docRef, {
             ...record,
@@ -343,7 +343,7 @@ class UserDataService {
       try {
         await batch.commit();
         
-        // Remove synced records from offline storage
+        
         const remainingOfflineData = offlineData.filter((record: any) => 
           !syncedIds.includes(record.id)
         );
@@ -361,7 +361,7 @@ class UserDataService {
     try {
       console.log('Initializing user data for:', userId);
       
-      // Load all user data and merge with offline data
+      
       const [trucks, maintenance, parts, suppliers, purchaseOrders] = await Promise.all([
         this.loadAndMergeData<TruckData>('trucks', userId),
         this.loadAndMergeData<MaintenanceData>('maintenance', userId),
@@ -370,7 +370,7 @@ class UserDataService {
         this.loadAndMergeData<PurchaseOrder>('purchaseOrders', userId)
       ]);
 
-      // Save merged data back to localStorage for persistence
+      
       localStorage.setItem(`user_data_${userId}`, JSON.stringify({
         trucks,
         maintenance, 
@@ -391,21 +391,21 @@ class UserDataService {
     userId: string
   ): Promise<T[]> {
     try {
-      // Get data from Firestore
+      
       const firestoreData = await this.getUserDocuments<T>(collectionName, userId);
       
-      // Get offline data
+      
       const offlineData = this.getOfflineDocuments<T>(collectionName, userId);
       
-      // Merge data, prioritizing more recent updates
+      
       const mergedData = new Map<string, T>();
       
-      // Add Firestore data first
+      
       firestoreData.forEach(item => {
         mergedData.set(item.id, item);
       });
       
-      // Add/update with offline data if it's newer
+      
       offlineData.forEach(item => {
         const existing = mergedData.get(item.id);
         if (!existing || new Date(item.updatedAt) > new Date(existing.updatedAt)) {
@@ -441,7 +441,7 @@ class UserDataService {
   private async createDocument<T>(collectionName: string, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'> & { userId: string }) {
     try {
       console.log(`Attempting to create ${collectionName} document in Firestore...`);
-      // Add timeout to prevent hanging
+      
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Firestore operation timeout')), 10000)
       );
@@ -455,7 +455,7 @@ class UserDataService {
       const docRef = await Promise.race([firestorePromise, timeoutPromise]) as any;
       console.log(`Successfully created ${collectionName} document in Firestore:`, docRef.id);
       
-      // Also save to persisted user data for immediate availability
+      
       this.saveToPersistedUserData(collectionName, data.userId, {
         ...data,
         id: docRef.id,
@@ -467,7 +467,7 @@ class UserDataService {
     } catch (error) {
       console.error(`Error creating ${collectionName} document:`, error);
       
-      // Fallback to offline storage
+      
       console.log(`Falling back to offline storage for ${collectionName}`);
       return this.createOfflineDocument(collectionName, data);
     }
@@ -488,7 +488,7 @@ class UserDataService {
     existingData.push(newDocument);
     localStorage.setItem(storageKey, JSON.stringify(existingData));
     
-    // Also save to persisted user data
+    
     this.saveToPersistedUserData(collectionName, data.userId, newDocument as any);
     
     console.log(`Document created offline in ${collectionName}:`, newDocument.id);
@@ -512,7 +512,7 @@ class UserDataService {
       await Promise.race([firestorePromise, timeoutPromise]);
       console.log(`Successfully updated ${collectionName} document in Firestore:`, id);
       
-      // Also update in persisted user data if we can determine the userId
+      
       const userId = (data as any).userId;
       if (userId) {
         this.updateInPersistedUserData(collectionName, userId, id, {
@@ -524,7 +524,7 @@ class UserDataService {
     } catch (error) {
       console.error(`Error updating ${collectionName} document:`, error);
       
-      // Fallback to offline storage
+      
       console.log(`Falling back to offline storage for updating ${collectionName}`);
       this.updateOfflineDocument(collectionName, id, data);
     }
@@ -547,7 +547,7 @@ class UserDataService {
     
     localStorage.setItem(storageKey, JSON.stringify(updatedData));
     
-    // Also update in persisted user data if we can determine the userId
+   
     const userId = (data as any).userId || existingData.find((doc: any) => doc.id === id)?.userId;
     if (userId) {
       this.updateInPersistedUserData(collectionName, userId, id, {
@@ -568,7 +568,7 @@ class UserDataService {
         existingData[collectionName] = [];
       }
       
-      // Add or update the document
+      
       const existingIndex = existingData[collectionName].findIndex((doc: any) => doc.id === (document as any).id);
       if (existingIndex >= 0) {
         existingData[collectionName][existingIndex] = document;
@@ -622,13 +622,13 @@ class UserDataService {
       await Promise.race([firestorePromise, timeoutPromise]);
       console.log(`Successfully deleted ${collectionName} document from Firestore:`, id);
       
-      // Also remove from persisted user data - we need to find the userId first
+      
       this.removeFromPersistedUserData(collectionName, id);
       
     } catch (error) {
       console.error(`Error deleting ${collectionName} document:`, error);
       
-      // Fallback to offline storage
+     
       console.log(`Falling back to offline storage for deleting ${collectionName}`);
       this.deleteOfflineDocument(collectionName, id);
     }
@@ -642,7 +642,7 @@ class UserDataService {
     
     localStorage.setItem(storageKey, JSON.stringify(filteredData));
     
-    // Also remove from persisted user data
+   
     this.removeFromPersistedUserData(collectionName, id);
     
     console.log(`Document deleted offline in ${collectionName}:`, id);
@@ -650,7 +650,7 @@ class UserDataService {
 
   private removeFromPersistedUserData(collectionName: string, documentId: string): void {
     try {
-      // We need to check all user data storage to find and remove this document
+      
       const allKeys = Object.keys(localStorage).filter(key => key.startsWith('user_data_'));
       
       for (const key of allKeys) {
@@ -663,7 +663,7 @@ class UserDataService {
             userData.lastUpdated = new Date().toISOString();
             localStorage.setItem(key, JSON.stringify(userData));
             console.log(`Removed ${collectionName} document from persisted user data: ${key}`);
-            break; // Document should only exist in one user's data
+            break; 
           }
         }
       }
@@ -673,25 +673,25 @@ class UserDataService {
   }
 
   private async getUserDocuments<T extends { id: string; userId: string; updatedAt: Date }>(collectionName: string, userId: string): Promise<T[]> {
-    // Always try to get cached data first for immediate UI response
+    
     console.log(`Loading ${collectionName} documents for user:`, userId);
     const cachedData = this.getPersistedUserDocuments<T>(collectionName, userId);
     
-    // If we have cached data, return it immediately and sync in background
+    
     if (cachedData.length > 0) {
       console.log(`Found ${cachedData.length} cached ${collectionName} documents, returning immediately`);
       
-      // Start background sync with reduced timeout (3 seconds instead of 10)
+      
       this.syncFirestoreInBackground(collectionName, userId, cachedData);
       
       return cachedData;
     }
     
-    // If no cached data, try Firestore with reduced timeout
+    
     try {
       console.log(`No cached data for ${collectionName}, fetching from Firestore...`);
       
-      // Reduced timeout to 3 seconds for faster fallback
+      
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Firestore query timeout')), 3000)
       );
@@ -712,14 +712,14 @@ class UserDataService {
       
       console.log(`Successfully fetched ${documents.length} ${collectionName} documents from Firestore`);
       
-      // Cache the fresh data
+     
       this.cacheFirestoreData(collectionName, userId, documents);
       
       return documents;
     } catch (error) {
       console.error(`Error fetching ${collectionName} documents:`, error);
       
-      // Return any available cached data even if it's empty
+      
       console.log(`Falling back to any available cached data for ${collectionName}`);
       return cachedData;
     }
@@ -727,7 +727,7 @@ class UserDataService {
 
   private async syncFirestoreInBackground<T extends { id: string; updatedAt: Date }>(collectionName: string, userId: string, cachedData: T[]): Promise<void> {
     try {
-      // Background sync with longer timeout since it's not blocking UI
+      
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Background Firestore sync timeout')), 8000)
       );
@@ -746,7 +746,7 @@ class UserDataService {
         updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt
       })) as T[];
       
-      // Only update cache if we got fresher data
+      
       if (freshData.length > 0) {
         const hasNewerData = this.hasNewerData(freshData, cachedData);
         if (hasNewerData) {
@@ -762,7 +762,7 @@ class UserDataService {
   private hasNewerData<T extends { id: string; updatedAt: Date }>(freshData: T[], cachedData: T[]): boolean {
     if (freshData.length !== cachedData.length) return true;
     
-    // Check if any item has a newer update timestamp
+    
     for (const freshItem of freshData) {
       const cachedItem = cachedData.find((item: T) => item.id === freshItem.id);
       if (!cachedItem || new Date(freshItem.updatedAt) > new Date(cachedItem.updatedAt)) {
@@ -788,7 +788,7 @@ class UserDataService {
   }
 
   private getPersistedUserDocuments<T>(collectionName: string, userId: string): T[] {
-    // First try to get from consolidated user data
+   
     const persistedUserData = localStorage.getItem(`user_data_${userId}`);
     if (persistedUserData) {
       try {
@@ -807,7 +807,7 @@ class UserDataService {
       }
     }
 
-    // Fallback to individual offline storage
+    
     return this.getOfflineDocuments<T>(collectionName, userId);
   }
 
@@ -816,7 +816,7 @@ class UserDataService {
     const offlineData = JSON.parse(localStorage.getItem(storageKey) || '[]');
     console.log(`Retrieved ${offlineData.length} offline documents from ${collectionName}`);
     
-    // Filter by userId and sort by createdAt descending
+    
     const filtered = offlineData
       .filter((doc: any) => doc.userId === userId)
       .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -963,14 +963,14 @@ class UserDataService {
     return this.getUserDocuments<SupplierData>('suppliers', userId);
   }
 
-  // Synchronous method to get cached suppliers immediately
+  
   getCachedSuppliers(userId: string): SupplierData[] {
     const cached = this.getPersistedUserDocuments<SupplierData>('suppliers', userId);
     console.log(`getCachedSuppliers: Found ${cached.length} suppliers for user ${userId}`);
     return cached;
   }
 
-  // Method to force cache sync for both suppliers and purchase orders
+  
   syncSuppliersAndPurchaseOrdersCache(userId: string, suppliers: SupplierData[], purchaseOrders: PurchaseOrder[]): void {
     try {
       const storageKey = `user_data_${userId}`;
@@ -1054,7 +1054,7 @@ class UserDataService {
     return this.getUserDocuments<PurchaseOrder>('purchaseOrders', userId);
   }
 
-  // Synchronous method to get cached purchase orders immediately
+  
   getCachedPurchaseOrders(userId: string): PurchaseOrder[] {
     const cached = this.getPersistedUserDocuments<PurchaseOrder>('purchaseOrders', userId);
     console.log(`getCachedPurchaseOrders: Found ${cached.length} purchase orders for user ${userId}`);

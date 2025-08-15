@@ -1,4 +1,4 @@
-// Note: Truck, MaintenanceEntry, Part are kept for future expansion of notification types
+
 
 interface Notification {
   id: string;
@@ -42,9 +42,9 @@ class NotificationService {
     this.requestPermission();
     this.startMonitoring();
     
-    // Create test notifications in development mode
+    
     if (process.env.NODE_ENV === 'development') {
-      // Delay to ensure the component is mounted
+      
       setTimeout(() => {
         this.createTestNotifications();
       }, 2000);
@@ -189,7 +189,7 @@ class NotificationService {
   }
 
   private checkForLowParts(): void {
-    // Get parts from localStorage (will be updated later to use AppContext)
+    
     const parts = JSON.parse(localStorage.getItem('fleetfix_app_state') || '{}').parts || [];
     
     parts.forEach((part: any) => {
@@ -331,7 +331,7 @@ class NotificationService {
   }
 
   public createTestNotifications(): void {
-    // Add some test notifications for development
+    
     if (process.env.NODE_ENV === 'development') {
       this.addNotification({
         type: 'part',
@@ -410,7 +410,7 @@ class NotificationService {
           });
         }
       } else {
-        // Clear any existing low stock notifications for this part when stock is sufficient
+        
         const existingNotifications = this.notifications.filter(n => 
           n.relatedEntity?.id === part.id && n.type === 'part' && !n.read
         );

@@ -2588,7 +2588,7 @@ select.status-dropdown:focus, select.status-dropdown:active {
   color: #64748b;
 }
 
-/* Responsive Design */
+
 @media (max-width: 768px) {
   .detail-header {
     padding: 1rem;

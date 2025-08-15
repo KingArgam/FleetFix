@@ -80,7 +80,7 @@ class AuthenticationService {
   }
 
   
-  // Method to set a mock user for development/testing
+  
   setMockUser(user: User): void {
     this.currentUser = user;
     localStorage.setItem('fleetfix_user', JSON.stringify(user));
@@ -144,7 +144,7 @@ class AuthenticationService {
           name: profileData.displayName || this.currentUser.name,
           email: profileData.email || this.currentUser.email
         };
-        // Notify listeners that the user profile has been updated
+        
         this.notifyAuthStateListeners(this.currentUser);
       }
     } catch (error: any) {

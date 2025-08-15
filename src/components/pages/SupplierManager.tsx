@@ -18,35 +18,35 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const [editingPurchaseOrder, setEditingPurchaseOrder] = useState<PurchaseOrder | null>(null);
   const [activeTab, setActiveTab] = useState<'list' | 'orders' | 'analytics'>('list');
   
-  // Loading states
+  
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
   const [purchaseOrdersLoaded, setPurchaseOrdersLoaded] = useState(false);
   const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(true);
   const [isLoadingPurchaseOrders, setIsLoadingPurchaseOrders] = useState(true);
   
-  // Initialize with cached data immediately to avoid loading states
+  
   useEffect(() => {
     if (currentUser) {
       console.log('Loading cached data for user:', currentUser.id);
       
-      // Load cached data synchronously for instant display
+      
       const cachedSuppliers = userDataService.getCachedSuppliers(currentUser.id);
       const cachedPurchaseOrders = userDataService.getCachedPurchaseOrders(currentUser.id);
       
       console.log('Cached suppliers found:', cachedSuppliers.length);
       console.log('Cached purchase orders found:', cachedPurchaseOrders.length);
       
-      // Always set the cached data, even if empty arrays
+      
       setSuppliers(cachedSuppliers);
       setPurchaseOrders(cachedPurchaseOrders);
       
-      // Only mark as loaded if we have data OR if there's genuinely no data stored
+
       if (cachedSuppliers.length > 0) {
         setSuppliersLoaded(true);
         setIsLoadingSuppliers(false);
         console.log(`Loaded ${cachedSuppliers.length} cached suppliers instantly`);
       } else {
-        // Check if there's any data in storage at all
+        
         const hasStoredSuppliers = localStorage.getItem(`user_data_${currentUser.id}`) !== null;
         if (hasStoredSuppliers) {
           setSuppliersLoaded(true);
@@ -60,7 +60,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
         setIsLoadingPurchaseOrders(false);
         console.log(`Loaded ${cachedPurchaseOrders.length} cached purchase orders instantly`);
       } else {
-        // Check if there's any data in storage at all
+        
         const hasStoredPurchaseOrders = localStorage.getItem(`user_data_${currentUser.id}`) !== null;
         if (hasStoredPurchaseOrders) {
           setPurchaseOrdersLoaded(true);
@@ -69,14 +69,14 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
         }
       }
       
-      // Force immediate render with cached data
+       Force immediate render with cached data
       console.log('Suppliers state after cache load:', cachedSuppliers.map(s => ({ id: s.id, name: s.name })));
       console.log('Purchase orders state after cache load:', cachedPurchaseOrders.map(po => ({ id: po.id, supplierId: po.supplierId })));
     }
   }, [currentUser]);
   
   
-  // Purchase Order Form State
+  
   const [poForm, setPOForm] = useState({
     orderNumber: '',
     supplierId: '',
@@ -90,9 +90,9 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
 
   useEffect(() => {
-    // Load suppliers first, then purchase orders
+   
     if (currentUser) {
-      // Only trigger full loading if we don't already have cached data
+      
       const hasCachedSuppliers = suppliers.length > 0 && suppliersLoaded;
       const hasCachedPurchaseOrders = purchaseOrders.length > 0 && purchaseOrdersLoaded;
       
@@ -100,17 +100,17 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
         loadSuppliersSequentially();
       } else {
         console.log('Using cached data, skipping network load');
-        // Ensure cache sync for data integrity
+        
         userDataService.syncSuppliersAndPurchaseOrdersCache(currentUser.id, suppliers, purchaseOrders);
       }
     } else {
-      // Reset loading states when no user to prevent infinite loading
+      
       setIsLoadingSuppliers(false);
       setIsLoadingPurchaseOrders(false);
       setSuppliersLoaded(false);
       setPurchaseOrdersLoaded(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  
   }, [currentUser]);
 
   const loadSuppliersSequentially = async () => {
@@ -123,10 +123,10 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     
     console.log('Starting sequential data load for user:', currentUser.id);
     
-    // Load suppliers first
+    
     await loadSuppliers();
     
-    // Then load purchase orders after suppliers are loaded
+    
     await loadPurchaseOrders();
   };
 
@@ -136,7 +136,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       return;
     }
     
-    // Skip if already loaded from cache
+    
     if (suppliersLoaded && suppliers.length > 0) {
       console.log('Suppliers already loaded from cache, skipping network fetch');
       return;
@@ -151,7 +151,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       setSuppliersLoaded(true);
     } catch (error) {
       console.error('Error loading suppliers:', error);
-      // Set empty array on error to prevent UI issues
+      
       setSuppliers([]);
       setSuppliersLoaded(true);
     } finally {
@@ -165,7 +165,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       return;
     }
     
-    // Skip if already loaded from cache
+    
     if (purchaseOrdersLoaded && purchaseOrders.length > 0) {
       console.log('Purchase orders already loaded from cache, skipping network fetch');
       return;
@@ -188,37 +188,37 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   };
 
   const handleSupplierSaved = async (supplier: SupplierData) => {
-    // Determine if this is an edit operation by checking if the supplier has an existing ID
-    // and if we can find it in the current suppliers list
+    
+    
     const isEdit = supplier.id && suppliers.some(s => s.id === supplier.id);
     
-    // Close modal immediately for instant feel
+    
     setShowSupplierModal(false);
     setEditingSupplier(undefined);
     
-    // Update local state immediately for instant UI feedback
+    
     let updatedSuppliers: SupplierData[];
     if (isEdit) {
-      // Update existing supplier in local state
+      
       updatedSuppliers = suppliers.map(s => s.id === supplier.id ? supplier : s);
       setSuppliers(updatedSuppliers);
     } else {
-      // Add new supplier to local state
+      
       updatedSuppliers = [supplier, ...suppliers];
       setSuppliers(updatedSuppliers);
     }
     
-    // Force cache update to ensure data persistence
+    
     if (currentUser) {
       console.log('Updating supplier cache after save');
       const userData = JSON.parse(localStorage.getItem(`user_data_${currentUser.id}`) || '{}');
       userData.suppliers = updatedSuppliers;
-      userData.purchaseOrders = purchaseOrders; // Ensure purchase orders are also cached
+      userData.purchaseOrders = purchaseOrders; 
       userData.lastUpdated = new Date().toISOString();
       localStorage.setItem(`user_data_${currentUser.id}`, JSON.stringify(userData));
     }
     
-    // Note: Removed loadSuppliers() call to prevent duplication since optimistic update handles the UI state
+   
   };
 
   const handleDeleteSupplier = async (supplierId: string) => {
@@ -230,10 +230,10 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     }
     
     try {
-      // Update UI immediately for instant feel
+      
       setSuppliers(prev => prev.filter(s => s.id !== supplierId));
       
-      // Clear editing state if deleting currently edited supplier
+      
       if (editingSupplier?.id === supplierId) {
         console.log('Clearing editing supplier and closing modal');
         setEditingSupplier(undefined);
@@ -241,7 +241,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       }
       
       console.log('Deleting supplier:', supplierId);
-      // Delete from backend in background
+      
       await userDataService.deleteSupplier(supplierId);
       console.log('Supplier deleted successfully');
       
@@ -250,7 +250,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete supplier. Please try again.';
       alert(errorMessage);
       
-      // Reload suppliers on error to revert optimistic update
+      
       await loadSuppliers();
     }
   };
@@ -268,7 +268,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     try {
       const totalCost = poForm.items.reduce((sum, item) => sum + item.total, 0);
       
-      // Process items with proper type conversion
+      
       const orderItems = poForm.items.map(item => ({
         partId: item.partName, 
         quantity: typeof item.quantity === 'string' && item.quantity === '' ? 0 : 
@@ -280,7 +280,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       }));
 
       if (editingPurchaseOrder) {
-        // Update existing purchase order
+        
         const updateData = {
           supplierId: poForm.supplierId,
           items: orderItems,
@@ -288,7 +288,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
           notes: poForm.notes
         };
 
-        // Update local state immediately for instant UI feedback
+        
         const updatedPO: PurchaseOrder = {
           ...editingPurchaseOrder,
           ...updateData,
@@ -299,20 +299,20 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
           po.id === editingPurchaseOrder.id ? updatedPO : po
         ));
         
-        // Persist to backend
+        
         try {
           await userDataService.updatePurchaseOrder(editingPurchaseOrder.id, updateData);
           console.log('Purchase order updated successfully:', editingPurchaseOrder.id);
         } catch (error) {
           console.error('Error updating purchase order:', error);
           alert('Failed to update purchase order. Please try again.');
-          // Reload purchase orders on error to revert optimistic update
+          
           await loadPurchaseOrders();
         }
         
         setEditingPurchaseOrder(null);
       } else {
-        // Create new purchase order
+        
         const purchaseOrderData = {
           supplierId: poForm.supplierId,
           orderNumber: poForm.orderNumber || `PO-${Date.now()}`, 
@@ -326,7 +326,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
         console.log('Creating purchase order with supplier ID:', poForm.supplierId);
         console.log('Available suppliers at creation time:', suppliers.map(s => ({ id: s.id, name: s.name })));
 
-        // Create temporary local object for immediate UI feedback
+        
         const tempPurchaseOrder: PurchaseOrder = {
           id: `temp_${Date.now()}`,
           userId: currentUser.id,
@@ -340,7 +340,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
         console.log('Selected supplier ID:', poForm.supplierId);
         console.log('Available suppliers at creation time:', suppliers.map(s => ({ id: s.id, name: s.name })));
 
-        // Validate that the supplier exists
+        
         const selectedSupplier = suppliers.find(s => s.id === poForm.supplierId);
         if (!selectedSupplier) {
           console.error('Selected supplier not found in suppliers list!');
@@ -350,40 +350,40 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
 
         console.log('Validated supplier:', selectedSupplier.name);
 
-        // Update state immediately for instant feel
+        
         setPurchaseOrders(prev => [tempPurchaseOrder, ...prev]);
 
-        // Persist to backend
+        
         try {
           const newId = await userDataService.createPurchaseOrder(currentUser.id, purchaseOrderData);
           console.log('Purchase order created successfully:', newId);
           
-          // Update the temporary order with the real ID
+          
           const finalPurchaseOrder = { ...tempPurchaseOrder, id: newId };
           setPurchaseOrders(prev => prev.map(po => 
             po.id === tempPurchaseOrder.id ? finalPurchaseOrder : po
           ));
           
-          // Force cache update to ensure data persistence
+          
           const updatedOrders = [finalPurchaseOrder, ...purchaseOrders.filter(po => po.id !== tempPurchaseOrder.id)];
           console.log('Updating cache with new purchase order');
           
-          // Update cache immediately
+          
           const userData = JSON.parse(localStorage.getItem(`user_data_${currentUser.id}`) || '{}');
           userData.purchaseOrders = updatedOrders;
-          userData.suppliers = suppliers; // Ensure suppliers are also cached
+          userData.suppliers = suppliers; 
           userData.lastUpdated = new Date().toISOString();
           localStorage.setItem(`user_data_${currentUser.id}`, JSON.stringify(userData));
           
         } catch (error) {
           console.error('Error creating purchase order:', error);
           alert('Failed to create purchase order. Please try again.');
-          // Remove the temporary order on error
+          
           setPurchaseOrders(prev => prev.filter(po => po.id !== tempPurchaseOrder.id));
         }
       }
       
-      // Close modal immediately for instant feel
+      
       setPOForm({
         orderNumber: '',
         supplierId: '',
@@ -411,7 +411,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       const newItems = [...prev.items];
       newItems[index] = { ...newItems[index], [field]: value };
       
-      // Recalculate total when quantity or unit price changes
+      
       if (field === 'quantity' || field === 'unitPrice') {
         const quantityValue = newItems[index].quantity;
         const unitPriceValue = newItems[index].unitPrice;
@@ -437,7 +437,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const handleEditPurchaseOrder = (purchaseOrder: PurchaseOrder) => {
     setEditingPurchaseOrder(purchaseOrder);
     
-    // Check if the supplier still exists
+    
     const supplierExists = suppliers.find(s => s.id === purchaseOrder.supplierId);
     if (!supplierExists) {
       console.warn(`Purchase order ${purchaseOrder.id} references missing supplier ${purchaseOrder.supplierId}`);
@@ -464,7 +464,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     console.log(`Changing order ${orderId} status to ${newStatus}`);
     
-    // Update local state immediately for instant UI feedback
+    
     setPurchaseOrders(prev => {
       const updated = prev.map(po => 
         po.id === orderId 
@@ -475,7 +475,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       return updated;
     });
 
-    // Persist the status change to backend
+    
     try {
       await userDataService.updatePurchaseOrder(orderId, { 
         status: newStatus as 'draft' | 'sent' | 'confirmed' | 'received' | 'cancelled'
@@ -483,7 +483,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       console.log(`Purchase order ${orderId} status updated to ${newStatus} in database`);
     } catch (error) {
       console.error('Error updating purchase order status:', error);
-      // Revert the local state change on error
+      
       setPurchaseOrders(prev => prev.map(po => 
         po.id === orderId 
           ? { ...po, status: purchaseOrders.find(p => p.id === orderId)?.status || 'draft' }
@@ -495,17 +495,17 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
 
   const handleDeletePurchaseOrder = async (orderId: string) => {
     if (window.confirm('Are you sure you want to delete this purchase order?')) {
-      // Update local state immediately for instant UI feedback
+      
       setPurchaseOrders(prev => prev.filter(po => po.id !== orderId));
       
-      // Persist the deletion to backend
+      
       try {
         await userDataService.deletePurchaseOrder(orderId);
         console.log(`Purchase order ${orderId} deleted successfully`);
       } catch (error) {
         console.error('Error deleting purchase order:', error);
         alert('Failed to delete purchase order. Please try again.');
-        // Reload purchase orders on error to revert optimistic update
+        
         await loadPurchaseOrders();
       }
     }
@@ -516,7 +516,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     (supplier.contactPerson && supplier.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Calculate supplier analytics with real-time updates
+  
   const [supplierAnalytics, setSupplierAnalytics] = useState({
     totalSuppliers: 0,
     activeSuppliers: 0,
@@ -530,7 +530,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     }>
   });
 
-  // Data integrity check and cleanup function
+ 
   const validateAndCleanupData = () => {
     if (!suppliersLoaded || !purchaseOrdersLoaded || !currentUser) {
       return;
@@ -538,7 +538,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     
     console.log('Running data integrity check...');
     
-    // Check for purchase orders with missing suppliers
+    
     const orphanedOrders = purchaseOrders.filter(po => 
       !suppliers.find(s => s.id === po.supplierId)
     );
@@ -546,34 +546,34 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     if (orphanedOrders.length > 0) {
       console.warn('Found orphaned purchase orders:', orphanedOrders);
       
-      // Option 1: Remove orphaned purchase orders
-      // setPurchaseOrders(prev => prev.filter(po => 
-      //   suppliers.find(s => s.id === po.supplierId)
-      // ));
       
-      // Option 2: Create placeholder suppliers for orphaned orders (more conservative)
+      
+      
+      
+      
+      
       const missingSupplierIds = Array.from(new Set(orphanedOrders.map(po => po.supplierId)));
       console.log('Missing supplier IDs:', missingSupplierIds);
       
-      // For now, just log the issue - don't auto-fix to avoid data loss
+      
       console.log('Data integrity issues found but not auto-fixed. Manual review recommended.');
     } else {
       console.log('Data integrity check passed - all purchase orders have valid suppliers');
     }
   };
 
-  // Run data validation after both suppliers and purchase orders are loaded
+  
   useEffect(() => {
     if (suppliersLoaded && purchaseOrdersLoaded && currentUser) {
       validateAndCleanupData();
-      // Ensure cache sync for data integrity
+      
       userDataService.syncSuppliersAndPurchaseOrdersCache(currentUser.id, suppliers, purchaseOrders);
     }
   }, [suppliersLoaded, purchaseOrdersLoaded, currentUser, suppliers.length, purchaseOrders.length]);
 
-  // Recalculate analytics whenever suppliers or purchase orders change
+  
   useEffect(() => {
-    // Only calculate analytics when both suppliers and purchase orders are loaded
+    
     if (!suppliersLoaded || !purchaseOrdersLoaded) {
       console.log('Waiting for all data to load before calculating analytics...');
       return;
@@ -583,7 +583,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     console.log('Suppliers:', suppliers.length);
     console.log('Purchase Orders:', purchaseOrders.length);
     
-    // Data integrity check - log any purchase orders with missing suppliers
+   
     const orphanedOrders = purchaseOrders.filter(po => 
       !suppliers.find(s => s.id === po.supplierId)
     );
@@ -605,15 +605,15 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
     
     console.log('Received orders:', receivedOrders);
     
-    // Calculate top suppliers by received orders
+    
     const supplierOrderMap = new Map<string, { orderCount: number; totalSpent: number; supplier: SupplierData }>();
     
-    // Initialize all suppliers
+    
     suppliers.forEach(supplier => {
       supplierOrderMap.set(supplier.id, { orderCount: 0, totalSpent: 0, supplier });
     });
     
-    // Count received orders for each supplier
+    
     receivedOrders.forEach(order => {
       const existing = supplierOrderMap.get(order.supplierId);
       if (existing) {
@@ -625,15 +625,15 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
       }
     });
     
-    // Convert to array and filter suppliers with orders
+    
     const topSuppliers = Array.from(supplierOrderMap.values())
       .filter(entry => entry.orderCount > 0)
       .sort((a, b) => {
-        // First sort by order count (descending)
+        
         if (b.orderCount !== a.orderCount) {
           return b.orderCount - a.orderCount;
         }
-        // Then by total spent (descending)
+        
         return b.totalSpent - a.totalSpent;
       })
       .slice(0, 5)
@@ -907,10 +907,10 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
                   </thead>
                   <tbody>
                     {purchaseOrders.map(order => {
-                      // Enhanced supplier lookup with better error handling
+                      
                       const supplier = suppliers.find(s => s.id === order.supplierId);
                       
-                      // Improved logic: only render table after both are ready OR use cached data immediately
+                      
                       let supplierName: string;
                       let supplierStatus: 'found' | 'loading' | 'unknown' = 'found';
                       
@@ -918,14 +918,14 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
                         supplierName = supplier.name;
                         supplierStatus = 'found';
                       } else {
-                        // If we have cached data (even empty), check if this is truly unknown
+                       
                         const hasCachedData = suppliers.length > 0 || suppliersLoaded;
                         
                         if (!hasCachedData && (!suppliersLoaded || !purchaseOrdersLoaded)) {
                           supplierName = 'Loading...';
                           supplierStatus = 'loading';
                         } else {
-                          // We have data but supplier not found - this is genuinely unknown
+                         
                           supplierName = 'Unknown Supplier';
                           supplierStatus = 'unknown';
                           console.warn(`Purchase order ${order.id} references unknown supplier ${order.supplierId}`);
@@ -1056,10 +1056,10 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
                   <h4>Order Categories</h4>
                   <div className="category-breakdown">
                     {['parts', 'fuel', 'maintenance', 'tools', 'repairs', 'tires', 'insurance', 'other'].map(category => {
-                      // Only count received orders for analytics
+                     
                       const receivedOrders = purchaseOrders.filter(po => po.status === 'received');
                       
-                      // Get all items from received orders in this category
+                      
                       const categoryItems = receivedOrders.flatMap(po => 
                         po.items.filter(item => (item as any).category === category)
                       );
@@ -1067,7 +1067,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
                       const itemCount = categoryItems.length;
                       const totalValue = categoryItems.reduce((sum, item) => sum + item.totalCost, 0);
                       
-                      // Calculate percentage based on all received order items
+                     
                       const totalItems = receivedOrders.flatMap(po => po.items).length;
                       const percentage = totalItems > 0 ? (itemCount / totalItems * 100).toFixed(1) : 0;
                       

@@ -53,23 +53,23 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ supplier, onSuccess,
       ...formData,
       name: formData.name.trim(),
       defaultLeadTimeDays: formData.defaultLeadTimeDays || 7,
-      // Provide default category for backend compatibility
+      
       category: 'parts' as const
     };
 
     let result: SupplierData;
     
     if (supplier) {
-      // Update existing supplier - prepare result immediately
+      
       result = {
         ...supplier,
         ...supplierData,
         updatedAt: new Date()
       };
     } else {
-      // Create new supplier - prepare result immediately with temporary ID
+      
       result = {
-        id: Date.now().toString(), // Temporary ID that will be replaced
+        id: Date.now().toString(), 
         userId: currentUser.id,
         ...supplierData,
         createdAt: new Date(),
@@ -77,13 +77,13 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ supplier, onSuccess,
       };
     }
 
-    // Call onSuccess immediately for instant UI response
+    
     onSuccess(result);
 
-    // Handle backend operations in background
+    
     try {
       if (supplier) {
-        // Update existing supplier in background
+        
         console.log('Updating existing supplier:', supplier.id);
         await userDataService.updateSupplier(supplier.id, {
           ...supplierData,
@@ -91,7 +91,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ supplier, onSuccess,
         });
         console.log('Supplier updated successfully');
       } else {
-        // Create new supplier in background
+        
         console.log('Creating new supplier:', supplierData);
         const supplierId = await userDataService.createSupplier(currentUser.id, supplierData);
         console.log('Supplier created successfully with ID:', supplierId);

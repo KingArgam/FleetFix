@@ -41,10 +41,10 @@ const MaintenancePage: React.FC<any> = ({ trucks: propTrucks, maintenanceEntries
 
   const handleMaintenanceSaved = async (entry: any) => {
     if (editingMaintenance) {
-      // Update existing entry
+      
       await updateMaintenance(editingMaintenance.id, entry);
     } else {
-      // Add new entry
+      
       await addMaintenance(entry);
       
       if (onAddEntry && !addMaintenance) {

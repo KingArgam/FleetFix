@@ -92,17 +92,17 @@ const Header: React.FC<HeaderProps> = () => {
     loadSavedSettings();
   }, []);
 
-  // Subscribe to notification updates
+  
   useEffect(() => {
     const updateNotifications = (updatedNotifications: Notification[]) => {
       setNotifications(updatedNotifications);
       setUnreadCount(updatedNotifications.filter(n => !n.read).length);
     };
 
-    // Initial load
+   
     updateNotifications(notificationService.getNotifications());
 
-    // Subscribe to changes
+    
     const unsubscribe = notificationService.subscribe(updateNotifications);
 
     return unsubscribe;

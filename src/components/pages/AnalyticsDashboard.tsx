@@ -49,7 +49,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
   const [showReliabilityBreakdown, setShowReliabilityBreakdown] = useState(false);
   const [downtimeRecords, setDowntimeRecords] = useState<any[]>([]);
 
-  // Clear any maintenance records with invalid dates from localStorage if needed
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedState = localStorage.getItem('fleetfix_app_state');
@@ -161,7 +161,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       try {
         const recordDate = new Date(record.date);
         
-        // Validate that the date is valid
+        
         if (isNaN(recordDate.getTime()) || recordDate.getTime() <= 0) {
           console.warn('Invalid date in maintenance record:', { 
             id: record.id, 
@@ -172,7 +172,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
           return;
         }
         
-        // Ensure we have a reasonable date
+        
         const currentYear = new Date().getFullYear();
         const recordYear = recordDate.getFullYear();
         if (recordYear < 1900 || recordYear > currentYear + 10) {
@@ -334,8 +334,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
   const loadAnalyticsData = useCallback(async () => {
     setLoading(true);
     try {
-      // Always use 'all time' - no date filtering
-      // Use all maintenance records since we're always showing all time
+      
+
       const filteredRecords = maintenance;
       
       const analytics = await calculateAnalytics(trucks, filteredRecords, parts, maintenance);
@@ -493,7 +493,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
 
 
   
-  // Calculate real-time metrics directly from context data for immediate updates
+  
   const realTimeFleetUtilization = trucks.length > 0 
     ? (trucks.filter((t: Truck) => t.status === 'In Service').length / trucks.length) * 100 
     : 0;
@@ -507,9 +507,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     ? realTimeTotalMaintenanceCost / trucks.length 
     : 0;
 
-  // Calculate filtered records - always use all records since we're showing all time
+  
   const getFilteredRecords = () => {
-    // Always return all maintenance records since we're set to "all time"
+    
     return maintenance.filter((record: MaintenanceEntry) => {
       if (!record.date) {
         console.warn('Maintenance record missing date:', record);
@@ -521,7 +521,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
         if (!isValidDate) {
           console.warn('Invalid date in maintenance record:', { id: record.id, date: record.date, type: record.type, parsedDate: testDate });
         }
-        return isValidDate; // Include only valid dates
+        return isValidDate; 
       } catch (error) {
         console.warn('Error parsing date in maintenance record:', record, error);
         return false;
@@ -531,14 +531,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
 
   const filteredRecords = getFilteredRecords();
 
-  // Rebuilt real-time cost breakdown calculation with enhanced data validation
+  
   const realTimeCostBreakdown = (() => {
     const breakdownMap: { [category: string]: number } = {};
     let totalCost = 0;
     
-    // Process each record with enhanced validation
+    
     filteredRecords.forEach((record: MaintenanceEntry) => {
-      // Ensure we have valid cost data
+      
       const cost = typeof record.cost === 'number' && !isNaN(record.cost) && record.cost > 0 ? record.cost : 0;
       const category = record.type || 'Other';
       
@@ -548,7 +548,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       }
     });
 
-    // Only return entries with actual costs
+    
     const result = Object.entries(breakdownMap)
       .filter(([category, amount]) => amount > 0)
       .map(([category, amount]) => ({
@@ -561,7 +561,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     return result;
   })();
 
-  // Rebuilt real-time maintenance trends calculation
+  
   const realTimeMaintenanceTrends = (() => {
     const monthlyData: { [key: string]: { cost: number; count: number; sortDate: Date; dates: string[] } } = {};
     
@@ -573,7 +573,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       try {
         const recordDate = new Date(record.date);
         
-        // Enhanced validation
+       
         if (isNaN(recordDate.getTime()) || recordDate.getTime() <= 0) {
           console.warn('Invalid date in maintenance record for trends:', { 
             id: record.id, 
@@ -586,10 +586,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
           return;
         }
         
-        // Check for specific problematic dates like "August 25"
+        
         if (String(record.date).toLowerCase().includes('august') || 
             recordDate.toLocaleDateString().includes('August') ||
-            recordDate.getMonth() === 7) { // August is month 7
+            recordDate.getMonth() === 7) { 
           console.error('🚨 FOUND AUGUST DATE in maintenance record:', {
             id: record.id,
             originalDate: record.date,
@@ -601,7 +601,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
           });
         }
         
-        // Ensure we have a reasonable date (not too far in past/future)
+        
         const currentYear = new Date().getFullYear();
         const recordYear = recordDate.getFullYear();
         if (recordYear < 1900 || recordYear > currentYear + 10) {
@@ -653,7 +653,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     return result;
   })();
 
-  // Real-time vehicle reliability calculation
+ 
   const realTimeVehicleReliability = (() => {
     return trucks.map((truck: Truck) => {
       const vehicleRecords = maintenance.filter((r: MaintenanceEntry) => r.truckId === truck.id);
@@ -730,7 +730,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     }).sort((a: any, b: any) => b.reliability - a.reliability);
   })();
 
-  // Real-time vehicle performance calculation
+  
   const realTimeVehiclePerformance = (() => {
     return trucks.map((truck: Truck) => {
       const vehicleMaintenanceRecords = maintenance.filter((record: MaintenanceEntry) => record.truckId === truck.id);
@@ -749,7 +749,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     }).sort((a: any, b: any) => a.costPerMile - b.costPerMile);
   })();
 
-  // Real-time most common issues calculation
+  
   const realTimeMostCommonIssues = (() => {
     const issueCount: { [key: string]: number } = {};
     filteredRecords.forEach((record: MaintenanceEntry) => {
@@ -771,7 +771,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     return sortedIssues;
   })();
 
-  // Use real-time calculations instead of async data
+ 
   const safeAnalytics = {
     fleetUtilization: realTimeFleetUtilization,
     totalMaintenanceCost: realTimeTotalMaintenanceCost,
@@ -891,7 +891,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
                   const totalMaintenanceRecords = maintenance.length;
                   const recordsWithCosts = filteredRecords.filter((r: MaintenanceEntry) => typeof r.cost === 'number' && r.cost > 0).length;
                   
-                  // Enhanced debugging information (can be removed in production)
+                  
                   console.log('Cost Breakdown Debug:', {
                     totalMaintenanceRecords,
                     filteredRecordsCount: filteredRecords.length,
@@ -960,7 +960,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
                     );
                   }
                   
-                  // Display the cost breakdown chart
+                  
                   return realTimeCostBreakdown.map((item, index) => (
                     <div key={index} className="cost-item">
                       <div className="cost-label">
@@ -1043,14 +1043,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
                     );
                   }
                   
-                  // Display the trends chart
+                  
                   return (
                     <div className="chart-area">
                       {realTimeMaintenanceTrends.map((trend, index) => {
                         const maxCost = Math.max(...realTimeMaintenanceTrends.map(t => t.cost));
                         const height = maxCost > 0 ? (trend.cost / maxCost) * 200 : 0;
                         
-                        // Create detailed tooltip with actual maintenance dates
+                        
                         const datesText = trend.dates && trend.dates.length > 0 
                           ? `Maintenance dates: ${trend.dates.join(', ')}`
                           : 'No specific dates available';
@@ -1228,7 +1228,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
                     const topIssue = safeAnalytics.mostCommonIssues[0];
                     return `Most frequent issue: ${topIssue.issue} (${topIssue.count} occurrences)`;
                   } else {
-                    // Since we're using all time, just use all maintenance records
+                    
                     const maintenanceRecords = maintenance;
                     
                     if (maintenanceRecords.length === 0) {

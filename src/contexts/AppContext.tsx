@@ -37,7 +37,7 @@ type AppAction =
 	| { type: 'SET_TEMP_PART_FORM'; payload: Partial<Part> | null }
 	| { type: 'CLEAR_ALL_DATA' };
 
-// Function to get user-specific localStorage state
+
 const getUserSpecificState = (userId: string | null): AppState => {
 	if (!userId || typeof window === 'undefined') {
 		return {
@@ -64,7 +64,7 @@ const getUserSpecificState = (userId: string | null): AppState => {
 		}
 	}
 
-	// Load sample data if available (for development testing)
+	
 	let sampleTrucks = [];
 	let sampleMaintenance = [];
 	if (process.env.NODE_ENV === 'development') {
@@ -75,7 +75,7 @@ const getUserSpecificState = (userId: string | null): AppState => {
 	}
 
 	return {
-		currentUser: null, // Will be set when user logs in
+		currentUser: null, 
 		trucks: sampleTrucks,
 		maintenance: sampleMaintenance,
 		parts: [],
@@ -93,13 +93,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
 	let newState: AppState;
 	switch (action.type) {
 		case 'SET_USER':
-			// When user changes, load their specific state or clear all data if logout
+			
 			if (action.payload) {
-				// User logged in - load their specific state
+				
 				const userSpecificState = getUserSpecificState(action.payload.id);
 				newState = { ...userSpecificState, currentUser: action.payload };
 			} else {
-				// User logged out - clear all data
+				
 				newState = {
 					currentUser: null,
 					trucks: [],
@@ -196,7 +196,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 			break;
 		case 'CLEAR_ALL_DATA':
 			newState = {
-				currentUser: state.currentUser, // Keep current user but clear their data
+				currentUser: state.currentUser,
 				trucks: [],
 				maintenance: [],
 				parts: [],
@@ -211,7 +211,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 		newState = state;
 	}
 	
-	// Save state to user-specific localStorage key if user is logged in
+	
 	if (typeof window !== 'undefined' && newState.currentUser) {
 		const userStateKey = `fleetfix_app_state_${newState.currentUser.id}`;
 		localStorage.setItem(userStateKey, JSON.stringify(newState));
@@ -265,7 +265,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 		await dataService.createPart(part);
 		dispatch({ type: 'ADD_PART', payload: part });
 		
-		// Check stock levels after adding a part
+		
 		setTimeout(() => {
 			notificationService.checkPartsStock([...state.parts, part]);
 		}, 100);
@@ -277,7 +277,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 		await dataService.updatePart(id, updates);
 		dispatch({ type: 'UPDATE_PART', payload: { id, data: updates } });
 		
-		// Check stock levels after updating a part
+		
 		setTimeout(() => {
 			const updatedParts = state.parts.map(part =>
 				part.id === id ? { ...part, ...updates } : part
@@ -325,10 +325,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 		const authUnsubscribe = authService.onAuthStateChange(async (user) => {
 			dispatch({ type: 'SET_USER', payload: user });
 			
-			// Initialize user data persistence when user logs in
+			
 			if (user) {
 				try {
-					// Import userDataService to initialize user data
+					
 					const userDataService = (await import('../services/UserDataService')).default;
 					await userDataService.initializeUserData(user.id);
 					console.log('User data initialized successfully for:', user.id);
@@ -343,15 +343,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 		};
 	}, []);
 
-	// Initialize and monitor stock levels
+	
 	useEffect(() => {
 		if (state.parts && state.parts.length > 0) {
-			// Check stock levels whenever parts data changes
+			
 			notificationService.checkPartsStock(state.parts);
 		}
 	}, [state.parts]);
 
-	// Initialize sample parts with low stock for testing (development only)
+	
 	useEffect(() => {
 		if (process.env.NODE_ENV === 'development' && state.parts.length === 0 && state.currentUser) {
 			const sampleParts = [
@@ -361,7 +361,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 					partNumber: 'BP-001',
 					category: 'Brakes' as const,
 					cost: 75.99,
-					inventoryLevel: 2, // Low stock
+					inventoryLevel: 2, 
 					minStockLevel: 10,
 					supplier: 'AutoParts Inc',
 					location: 'A1-B2',
@@ -374,7 +374,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 					partNumber: 'OF-002',
 					category: 'Filters' as const,
 					cost: 12.50,
-					inventoryLevel: 0, // Out of stock
+					inventoryLevel: 0,
 					minStockLevel: 15,
 					supplier: 'FilterWorld',
 					location: 'B3-C1',
@@ -387,7 +387,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 					partNumber: 'SP-003',
 					category: 'Engine' as const,
 					cost: 8.99,
-					inventoryLevel: 25, // Good stock
+					inventoryLevel: 25, 
 					minStockLevel: 20,
 					supplier: 'EngineMax',
 					location: 'C2-D3',
