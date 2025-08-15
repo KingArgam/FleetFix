@@ -69,7 +69,7 @@ const SupplierManager: React.FC<SupplierManagerProps> = () => {
         }
       }
       
-       Force immediate render with cached data
+       
       console.log('Suppliers state after cache load:', cachedSuppliers.map(s => ({ id: s.id, name: s.name })));
       console.log('Purchase orders state after cache load:', cachedPurchaseOrders.map(po => ({ id: po.id, supplierId: po.supplierId })));
     }
