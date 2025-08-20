@@ -5,7 +5,7 @@ A clean, web-based platform for independent trucking companies (1–50 trucks) t
 ## 🔑 Core Purpose
 Built specifically for smaller fleet operations that are underserved by large fleet systems like Fleetio or Samsara.
 
-## 🧱 Core Features (MVP)
+## 🧱 Core Features 
 
 ### 1. Vehicle Management
 - Add/Edit Trucks with VIN, license plate, make/model, year, mileage
